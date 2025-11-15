@@ -206,7 +206,11 @@ button {
   flex-grow: 1;
 }
 
-button.secondary {
+select {
+    border-radius: 0.25em;
+}
+
+button.secondary, select {
   background: rgb(240, 240, 240);
   border: 1px solid #4b5563;
   color: black;
@@ -558,6 +562,11 @@ button:disabled {
   border-bottom: none;
 }
 
+#send-btn {
+    max-width: 30%;
+
+}
+
 /* Game log recorded but not shown visually */
 .log-panel {
   display: none;
@@ -602,6 +611,14 @@ button:disabled {
   max-width: 500px;
   margin: 2rem auto;
   text-align: center;
+  display: flex;
+  align-items: center;
+}
+
+#restart-btn {
+    max-height: 10%;
+    max-width: 40%;
+    margin-top: auto;
 }
 
 /* Responsive */
@@ -633,20 +650,4 @@ button:disabled {
     flex-direction: column;
     align-items: flex-start;
   }
-
-  .ai-options {
-    margin-bottom: 0.75rem;
-  }
-
-  .ai-options label {
-    display: block;
-    font-size: 0.8rem;
-    margin-bottom: 0.25rem;
-    color: #bbb;
-  }
-
-  .ai-options select {
-    width: 100%;
-  }
-
 }
