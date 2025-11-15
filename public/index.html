@@ -82,12 +82,21 @@
             <h2>Controls</h2>
             <p>Host can start the game when everyone has joined.</p>
 
-            <!-- NEW: Add AI Player button for host -->
+            <!-- AI difficulty selector -->
+            <div class="ai-options">
+              <label for="ai-difficulty">AI Difficulty</label>
+              <select id="ai-difficulty">
+                <option value="easy">Easy</option>
+                <option value="medium" selected>Medium</option>
+                <option value="hard">Hard</option>
+              </select>
+            </div>
+
             <button id="lobby-start-btn" disabled>Start Game</button>
             <button id="add-ai-btn" class="secondary">Add AI Player</button>
             <button id="lobby-back-btn" class="secondary">Leave Room</button>
-
           </div>
+
         </div>
       </div>
     </section>

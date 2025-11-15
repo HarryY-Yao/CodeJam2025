@@ -188,24 +188,41 @@ function chooseWordOptions() {
 function createAIStrokeSequence(wordRaw) {
   const word = (wordRaw || "").toLowerCase().trim();
   const strokes = [];
-  let currentColor = "#3b82f6"; // default blue
+  const baseColor = "#3b82f6";
   const lineWidth = 7;
+
   const W = 640;
   const H = 480;
   const cx = W / 2;
   const cy = H / 2;
 
-  function setColor(color) {
-    currentColor = color;
+  let currentColor = baseColor;
+
+  function setColor(c) {
+    currentColor = c || baseColor;
+  }
+
+  function penUp() {
+    strokes.push({ type: "penUp" });
+  }
+
+  function penDown() {
+    strokes.push({ type: "penDown" });
   }
 
   function addPoint(x, y) {
-    strokes.push({ type: "draw", x, y, color: currentColor, lineWidth });
+    strokes.push({
+      type: "draw",
+      x,
+      y,
+      color: currentColor,
+      lineWidth
+    });
   }
 
-  function addLine(x1, y1, x2, y2, segments = 12) {
-    for (let i = 0; i <= segments; i++) {
-      const t = i / segments;
+  function addLine(x1, y1, x2, y2, steps = 24) {
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
       const x = x1 + (x2 - x1) * t;
       const y = y1 + (y2 - y1) * t;
       addPoint(x, y);
@@ -219,20 +236,20 @@ function createAIStrokeSequence(wordRaw) {
     addLine(x, y + h, x, y);
   }
 
-  function addCircleOutline(xc, yc, r, segments = 28) {
+  function addCircleOutline(xc, yc, r, segments = 32) {
     let prevX = xc + r;
     let prevY = yc;
     for (let i = 1; i <= segments; i++) {
-      const theta = (2 * Math.PI * i) / segments;
-      const x = xc + r * Math.cos(theta);
-      const y = yc + r * Math.sin(theta);
+      const a = (2 * Math.PI * i) / segments;
+      const x = xc + r * Math.cos(a);
+      const y = yc + r * Math.sin(a);
       addLine(prevX, prevY, x, y, 1);
       prevX = x;
       prevY = y;
     }
   }
 
-  function addArcSegment(xc, yc, r, startAngle, endAngle, segments = 18) {
+  function addArc(xc, yc, r, startAngle, endAngle, segments = 24) {
     let prevX = xc + r * Math.cos(startAngle);
     let prevY = yc + r * Math.sin(startAngle);
     for (let i = 1; i <= segments; i++) {
@@ -245,12 +262,41 @@ function createAIStrokeSequence(wordRaw) {
     }
   }
 
-  // === Simple icons per word, now with colors ===
+  function addWavyLine(x1, y1, x2, y2, waves = 4, amplitude = 15) {
+    const steps = 80;
+    for (let i = 0; i <= steps; i++) {
+      const t = i / steps;
+      const x = x1 + (x2 - x1) * t;
+      const yBase = y1 + (y2 - y1) * t;
+      const y = yBase + Math.sin(t * waves * Math.PI * 2) * amplitude;
+      addPoint(x, y);
+    }
+  }
+
+  function addSpiralFallback() {
+    const baseRadius = 80;
+    let radius = 10;
+    penUp();
+    penDown();
+    for (let angle = 0; angle < Math.PI * 4; angle += 0.06) {
+      const x = cx + radius * Math.cos(angle);
+      const y = cy + radius * Math.sin(angle);
+      addPoint(x, y);
+      radius += (baseRadius - radius) * 0.02;
+    }
+    penUp();
+  }
+
+  // ------ Simple icons per word with explicit penUp/penDown ------
 
   function drawSun() {
-    setColor("#fbbf24"); // yellow
+    setColor("#facc15");
+    penUp();
+    penDown();
     addCircleOutline(cx, cy, 40);
-    setColor("#f97316"); // orange rays
+    penUp();
+
+    setColor("#f97316");
     const rayLen = 70;
     for (let i = 0; i < 8; i++) {
       const angle = (2 * Math.PI * i) / 8;
@@ -258,33 +304,32 @@ function createAIStrokeSequence(wordRaw) {
       const y1 = cy + 40 * Math.sin(angle);
       const x2 = cx + rayLen * Math.cos(angle);
       const y2 = cy + rayLen * Math.sin(angle);
+      penDown();
       addLine(x1, y1, x2, y2);
+      penUp();
     }
   }
 
   function drawMoon() {
-    setColor("#e5e7eb"); // light gray
+    setColor("#e5e7eb");
+    penUp();
+    penDown();
     addCircleOutline(cx, cy, 40);
-    const offset = 18;
-    const r = 40;
-    let prevX = cx + offset + r;
-    let prevY = cy;
-    for (let i = 1; i <= 22; i++) {
-      const theta = (2 * Math.PI * i) / 22;
-      const x = cx + offset + r * Math.cos(theta);
-      const y = cy + r * Math.sin(theta);
-      addLine(prevX, prevY, x, y, 1);
-      prevX = x;
-      prevY = y;
-    }
+    penUp();
+
+    // simple crescent: second circle slightly offset
+    setColor("#111827");
+    penDown();
+    addCircleOutline(cx + 15, cy, 40);
+    penUp();
   }
 
   function drawBall() {
-    setColor("#ef4444"); // red ball
+    setColor("#ef4444");
+    penUp();
+    penDown();
     addCircleOutline(cx, cy, 45);
-    setColor("#111827");
-    //addLine(cx - 45, cy, cx + 45, cy);
-    //addLine(cx, cy - 45, cx, cy + 45);
+    penUp();
   }
 
   function drawPizza() {
@@ -296,21 +341,25 @@ function createAIStrokeSequence(wordRaw) {
     const rightX = cx + r;
     const rightY = cy + r * 0.3;
 
-    setColor("#f97316"); // crust line
+    setColor("#f97316");
+    penUp();
+    penDown();
     addLine(tipX, tipY, leftX, leftY);
     addLine(tipX, tipY, rightX, rightY);
     addLine(leftX, leftY, rightX, rightY);
+    penUp();
 
-    // crust ridge
-    setColor("#92400e");
-    addLine(leftX, leftY, cx, leftY + 10);
-    addLine(cx, leftY + 10, rightX, rightY);
-
-    // toppings (pepperoni)
+    // pepperoni
     setColor("#b91c1c");
+    penDown();
     addCircleOutline(cx - 20, cy - 10, 6, 10);
+    penUp();
+    penDown();
     addCircleOutline(cx + 15, cy, 6, 10);
+    penUp();
+    penDown();
     addCircleOutline(cx, cy + 15, 6, 10);
+    penUp();
   }
 
   function drawHouse() {
@@ -319,27 +368,43 @@ function createAIStrokeSequence(wordRaw) {
     const baseX = cx - w / 2;
     const baseY = cy;
 
-    setColor("#3b82f6"); // blue walls
+    setColor("#3b82f6"); // walls
+    penUp();
+    penDown();
     addRectOutline(baseX, baseY, w, h);
+    penUp();
 
-    setColor("#b91c1c"); // red roof
+    setColor("#b91c1c"); // roof
+    penDown();
     addLine(baseX, baseY, cx, baseY - 80);
     addLine(cx, baseY - 80, baseX + w, baseY);
+    penUp();
 
-    setColor("#4b5563"); // gray door
+    setColor("#4b5563"); // door
+    penDown();
     addRectOutline(cx - 20, baseY + 40, 40, 70);
+    penUp();
   }
 
   function drawTree() {
     // trunk
     setColor("#92400e");
+    penUp();
+    penDown();
     addRectOutline(cx - 15, cy + 10, 30, 80);
+    penUp();
 
     // leaves
     setColor("#22c55e");
+    penDown();
     addCircleOutline(cx, cy - 10, 40);
+    penUp();
+    penDown();
     addCircleOutline(cx - 25, cy, 30, 18);
+    penUp();
+    penDown();
     addCircleOutline(cx + 25, cy, 30, 18);
+    penUp();
   }
 
   function drawCar() {
@@ -348,31 +413,53 @@ function createAIStrokeSequence(wordRaw) {
     const baseX = cx - bodyW / 2;
     const baseY = cy;
 
-    setColor("#3b82f6"); // blue body
+    setColor("#3b82f6");
+    penUp();
+    penDown();
     addRectOutline(baseX, baseY, bodyW, bodyH);
-    addRectOutline(cx - 40, baseY - 30, 80, 30); // cabin
+    penUp();
 
-    setColor("#111827"); // wheels
+    // cabin
+    penDown();
+    addRectOutline(cx - 40, baseY - 30, 80, 30);
+    penUp();
+
+    // wheels
+    setColor("#111827");
+    penDown();
     addCircleOutline(cx - 60, baseY + bodyH + 18, 18, 16);
+    penUp();
+    penDown();
     addCircleOutline(cx + 60, baseY + bodyH + 18, 18, 16);
+    penUp();
   }
 
   function drawTrain() {
     setColor("#3b82f6");
+    penUp();
+    penDown();
     addRectOutline(cx - 120, cy - 30, 60, 60);
+    penUp();
+
     setColor("#10b981");
+    penDown();
     addRectOutline(cx - 60, cy - 20, 60, 50);
+    penUp();
+
     setColor("#f97316");
+    penDown();
     addRectOutline(cx, cy - 30, 80, 60);
+    penUp();
 
-    setColor("#6b7280");
-    addRectOutline(cx - 105, cy - 60, 20, 30); // chimney
-
+    // wheels
     setColor("#111827");
-    addCircleOutline(cx - 95, cy + 40, 14, 12);
-    addCircleOutline(cx - 35, cy + 40, 14, 12);
-    addCircleOutline(cx + 25, cy + 40, 14, 12);
-    addCircleOutline(cx + 65, cy + 40, 14, 12);
+    const wheelY = cy + 40;
+    const positions = [-95, -35, 25, 65];
+    for (const dx of positions) {
+      penDown();
+      addCircleOutline(cx + dx, wheelY, 14, 12);
+      penUp();
+    }
   }
 
   function drawBook() {
@@ -381,13 +468,16 @@ function createAIStrokeSequence(wordRaw) {
     const baseX = cx - w / 2;
     const baseY = cy - h / 2;
 
-    setColor("#10b981"); // green cover
+    setColor("#10b981");
+    penUp();
+    penDown();
     addRectOutline(baseX, baseY, w, h);
+    penUp();
 
-    setColor("#111827"); // spine & lines
+    setColor("#111827");
+    penDown();
     addLine(cx, baseY, cx, baseY + h);
-    addLine(baseX + 10, baseY + 20, baseX + w - 10, baseY + 20);
-    addLine(baseX + 10, baseY + 45, baseX + w - 10, baseY + 45);
+    penUp();
   }
 
   function drawPhone() {
@@ -396,14 +486,16 @@ function createAIStrokeSequence(wordRaw) {
     const x = cx - w / 2;
     const y = cy - h / 2;
 
-    setColor("#111827"); // dark outline
+    setColor("#111827");
+    penUp();
+    penDown();
     addRectOutline(x, y, w, h);
+    penUp();
 
-    setColor("#0ea5e9"); // screen
+    setColor("#0ea5e9");
+    penDown();
     addRectOutline(x + 8, y + 12, w - 16, h - 40);
-
-    setColor("#6b7280"); // button
-    addCircleOutline(cx, y + h - 18, 5, 10);
+    penUp();
   }
 
   function drawCamera() {
@@ -412,17 +504,16 @@ function createAIStrokeSequence(wordRaw) {
     const x = cx - w / 2;
     const y = cy - h / 2;
 
-    setColor("#374151"); // body
+    setColor("#374151");
+    penUp();
+    penDown();
     addRectOutline(x, y, w, h);
+    penUp();
 
-    setColor("#111827");
-    addRectOutline(x + 10, y - 20, 50, 20); // top
-
-    setColor("#fbbf24"); // lens
+    setColor("#fbbf24");
+    penDown();
     addCircleOutline(cx, cy, 28, 20);
-
-    setColor("#ef4444"); // small light
-    addRectOutline(x + w - 30, y + 10, 15, 10);
+    penUp();
   }
 
   function drawRocket() {
@@ -431,19 +522,17 @@ function createAIStrokeSequence(wordRaw) {
     const x = cx - bodyW / 2;
     const y = cy - bodyH / 2;
 
-    setColor("#e5e7eb"); // light body
+    setColor("#e5e7eb");
+    penUp();
+    penDown();
     addRectOutline(x, y, bodyW, bodyH);
+    penUp();
 
-    setColor("#ef4444"); // nose
+    setColor("#ef4444");
+    penDown();
     addLine(x, y, cx, y - 40);
     addLine(cx, y - 40, x + bodyW, y);
-
-    setColor("#f97316"); // flames
-    addLine(x, y + bodyH, x - 25, y + bodyH + 40);
-    addLine(x + bodyW, y + bodyH, x + bodyW + 25, y + bodyH + 40);
-
-    setColor("#0ea5e9"); // window
-    addCircleOutline(cx, cy - 20, 12, 16);
+    penUp();
   }
 
   function drawFish() {
@@ -452,45 +541,50 @@ function createAIStrokeSequence(wordRaw) {
     const x2 = cx + len / 2;
     const y = cy;
 
-    setColor("#0ea5e9"); // blue fish
+    setColor("#0ea5e9");
+    penUp();
+    penDown();
     addLine(x1, y, x2, y);
-    addLine(x1, y, cx - 20, y - 20);
-    addLine(x1, y, cx - 20, y + 20);
+    penUp();
+
+    // tail
+    penDown();
     addLine(x2, y, x2 + 30, y - 20);
     addLine(x2, y, x2 + 30, y + 20);
-
-    setColor("#111827");
-    addCircleOutline(cx - 30, y - 8, 4, 8); // eye
+    penUp();
   }
 
   function drawUmbrella() {
     const r = 80;
-    setColor("#ec4899"); // pink canopy
+    setColor("#ec4899");
+    penUp();
+    penDown();
     addCircleOutline(cx, cy, r, 24);
-    addLine(cx - r, cy, cx + r, cy);
+    penUp();
 
-    setColor("#111827"); // handle
+    setColor("#111827");
+    penDown();
     addLine(cx, cy, cx, cy + 80);
-    addArcSegment(cx, cy + 80, 18, Math.PI, Math.PI * 1.5, 10);
+    penUp();
   }
 
   function drawFlower() {
-    setColor("#facc15"); // center
+    setColor("#facc15");
+    penUp();
+    penDown();
     addCircleOutline(cx, cy, 12, 12);
+    penUp();
 
-    const petalR = 30;
     setColor("#f97316");
+    const petalR = 30;
     for (let i = 0; i < 6; i++) {
       const angle = (2 * Math.PI * i) / 6;
       const px = cx + petalR * Math.cos(angle);
       const py = cy + petalR * Math.sin(angle);
+      penDown();
       addCircleOutline(px, py, 16, 16);
+      penUp();
     }
-
-    setColor("#22c55e"); // stem & leaves
-    addLine(cx, cy + 12, cx, cy + 80);
-    addLine(cx, cy + 40, cx - 25, cy + 55);
-    addLine(cx, cy + 55, cx - 10, cy + 65);
   }
 
   function drawBanana() {
@@ -500,156 +594,130 @@ function createAIStrokeSequence(wordRaw) {
     const end = (5 * Math.PI) / 4;
 
     setColor("#facc15");
-    addArcSegment(cx, cy, rOuter, start, end, 22);
+    penUp();
+    penDown();
+    addArc(cx, cy, rOuter, start, end, 22);
+    penUp();
 
     setColor("#fbbf24");
-    addArcSegment(cx, cy + 20, rInner, start, end, 22);
-  }
-
-  function drawPencil() {
-    const len = 160;
-    const x1 = cx - len / 2;
-    const x2 = cx + len / 2;
-    const y = cy;
-
-    setColor("#facc15"); // body
-    addLine(x1, y - 10, x2, y - 10);
-    addLine(x1, y + 10, x2, y + 10);
-
-    setColor("#6b7280"); // back
-    addLine(x1, y - 10, x1, y + 10);
-
-    setColor("#f97316"); // tip
-    addLine(x2, y - 10, x2 + 25, y);
-    addLine(x2, y + 10, x2 + 25, y);
-
-    setColor("#111827"); // center line
-    addLine(x1 + 10, y, x2 - 10, y);
+    penDown();
+    addArc(cx, cy + 20, rInner, start, end, 22);
+    penUp();
   }
 
   function drawChair() {
     setColor("#6b7280");
+    penUp();
+    penDown();
     addRectOutline(cx - 40, cy - 40, 80, 40); // backrest
+    penUp();
 
     setColor("#9ca3af");
+    penDown();
     addRectOutline(cx - 40, cy, 80, 30); // seat
-
-    setColor("#111827");
-    addLine(cx - 35, cy + 30, cx - 35, cy + 80);
-    addLine(cx + 35, cy + 30, cx + 35, cy + 80);
+    penUp();
   }
 
   function drawTable() {
     setColor("#9ca3af");
+    penUp();
+    penDown();
     addRectOutline(cx - 100, cy - 20, 200, 40);
+    penUp();
+
     setColor("#4b5563");
+    penDown();
     addLine(cx - 80, cy + 20, cx - 80, cy + 80);
     addLine(cx + 80, cy + 20, cx + 80, cy + 80);
+    penUp();
   }
 
   function drawCookie() {
     setColor("#eab308");
+    penUp();
+    penDown();
     addCircleOutline(cx, cy, 45, 24);
+    penUp();
 
-    setColor("#b45309"); // chips
+    setColor("#b45309");
+    penDown();
     addCircleOutline(cx - 15, cy - 10, 4, 8);
+    penUp();
+    penDown();
     addCircleOutline(cx + 10, cy - 5, 4, 8);
-    addCircleOutline(cx, cy + 15, 4, 8);
+    penUp();
   }
 
   function drawCloud() {
-    setColor("#e5e7eb"); // light gray cloud
+    setColor("#e5e7eb");
+    penUp();
+    penDown();
     addCircleOutline(cx - 35, cy, 35, 18);
+    penUp();
+    penDown();
     addCircleOutline(cx, cy - 15, 45, 18);
+    penUp();
+    penDown();
     addCircleOutline(cx + 35, cy, 35, 18);
+    penUp();
   }
 
   function drawMountain() {
     setColor("#6b7280");
+    penUp();
+    penDown();
     addLine(cx - 120, cy + 70, cx, cy - 80);
     addLine(cx, cy - 80, cx + 120, cy + 70);
-    setColor("#9ca3af");
-    addLine(cx - 40, cy + 70, cx + 40, cy + 70);
+    penUp();
   }
 
   function drawRiver() {
     const leftX = cx - 150;
     const rightX = cx + 150;
-    let prevX = leftX;
-    let prevY = cy - 80;
+    const topY = cy - 80;
+    const bottomY = cy + 80;
 
     setColor("#0ea5e9");
-    for (let i = 1; i <= 40; i++) {
-      const t = i / 40;
-      const x = leftX + (rightX - leftX) * t + Math.sin(t * Math.PI * 4) * 20;
-      const y = cy - 80 + t * 160;
-      addLine(prevX, prevY, x, y, 1);
-      prevX = x;
-      prevY = y;
-    }
-  }
-
-  function drawComputer() {
-    setColor("#111827");
-    addRectOutline(cx - 120, cy - 80, 240, 140); // monitor
-
-    setColor("#0ea5e9");
-    addRectOutline(cx - 110, cy - 70, 220, 120); // screen
-
-    setColor("#6b7280");
-    addRectOutline(cx - 80, cy + 60, 160, 30); // base
-    addLine(cx - 30, cy + 60, cx - 10, cy + 40);
-    addLine(cx + 30, cy + 60, cx + 10, cy + 40);
-  }
-
-  function drawAirplane() {
-    const bodyLen = 200;
-    const x1 = cx - bodyLen / 2;
-    const x2 = cx + bodyLen / 2;
-    const y = cy;
-
-    setColor("#e5e7eb");
-    addLine(x1, y, x2, y); // body
-
-    setColor("#3b82f6");
-    addLine(cx - 20, y, cx - 80, y - 40);
-    addLine(cx - 20, y, cx - 80, y + 40);
-    addLine(cx + 40, y, cx, y - 40);
-    addLine(cx + 40, y, cx, y + 40);
-
-    setColor("#111827");
-    addLine(x1, y, x1 - 30, y - 20);
-    addLine(x1, y, x1 - 30, y + 20);
+    penUp();
+    penDown();
+    addWavyLine(leftX, topY, rightX, bottomY, 4, 20);
+    penUp();
   }
 
   function drawCat() {
-    setColor("#facc15"); // yellowish cat
+    setColor("#facc15");
+    penUp();
+    penDown();
     addCircleOutline(cx, cy, 40, 24); // head
+    penUp();
 
-    setColor("#f59e0b"); // ears
+    // ears
+    setColor("#f59e0b");
+    penDown();
     addLine(cx - 25, cy - 25, cx - 10, cy - 55);
     addLine(cx - 10, cy - 55, cx, cy - 25);
+    penUp();
+    penDown();
     addLine(cx + 25, cy - 25, cx + 10, cy - 55);
     addLine(cx + 10, cy - 55, cx, cy - 25);
-
-    setColor("#111827"); // whiskers
-    addLine(cx - 10, cy + 10, cx - 40, cy + 10);
-    addLine(cx - 10, cy + 15, cx - 40, cy + 20);
-    addLine(cx + 10, cy + 10, cx + 40, cy + 10);
-    addLine(cx + 10, cy + 15, cx + 40, cy + 20);
+    penUp();
   }
 
   function drawDog() {
-    setColor("#9ca3af"); // head
-    addCircleOutline(cx, cy, 40, 24);
+    setColor("#9ca3af");
+    penUp();
+    penDown();
+    addCircleOutline(cx, cy, 40, 24); // head
+    penUp();
 
-    setColor("#6b7280"); // ears
+    // ears
+    setColor("#6b7280");
+    penDown();
     addRectOutline(cx - 45, cy - 15, 15, 35);
+    penUp();
+    penDown();
     addRectOutline(cx + 30, cy - 15, 15, 35);
-
-    setColor("#111827"); // mouth
-    addLine(cx - 15, cy + 20, cx - 40, cy + 30);
-    addLine(cx + 15, cy + 20, cx + 40, cy + 30);
+    penUp();
   }
 
   function drawShoe() {
@@ -658,24 +726,35 @@ function createAIStrokeSequence(wordRaw) {
     const x = cx - w / 2;
     const y = cy;
 
-    setColor("#ef4444"); // red shoe
+    setColor("#ef4444");
+    penUp();
+    penDown();
     addLine(x, y, x + w, y);
     addLine(x, y, x, y + h);
     addLine(x + w, y, x + w - 20, y - h);
     addLine(x + w - 20, y - h, x + 20, y - h);
+    penUp();
   }
 
-  function drawGeneric() {
-    // fallback: colored question mark
-    setColor("#3b82f6");
-    addCircleOutline(cx, cy - 30, 30, 20);
-    setColor("#111827");
-    addLine(cx + 10, cy, cx, cy + 30);
-    addLine(cx, cy + 30, cx, cy + 50);
-    addCircleOutline(cx, cy + 70, 3, 8);
+  function drawGuitar() {
+    // very simple: body + neck
+    setColor("#f59e0b");
+    penUp();
+    penDown();
+    addCircleOutline(cx - 20, cy, 30, 20);
+    penUp();
+    penDown();
+    addCircleOutline(cx + 20, cy, 20, 20);
+    penUp();
+
+    // neck
+    setColor("#6b7280");
+    penDown();
+    addRectOutline(cx + 30, cy - 10, 60, 20);
+    penUp();
   }
 
-  // === Choose which icon to draw based on the word ===
+  // ------- Choose which shape to draw -------
 
   if (word.includes("sun")) {
     drawSun();
@@ -709,8 +788,6 @@ function createAIStrokeSequence(wordRaw) {
     drawFlower();
   } else if (word.includes("banana")) {
     drawBanana();
-  } else if (word.includes("pencil")) {
-    drawPencil();
   } else if (word.includes("chair")) {
     drawChair();
   } else if (word.includes("table")) {
@@ -723,22 +800,21 @@ function createAIStrokeSequence(wordRaw) {
     drawMountain();
   } else if (word.includes("river")) {
     drawRiver();
-  } else if (word.includes("computer")) {
-    drawComputer();
-  } else if (word.includes("airplane")) {
-    drawAirplane();
   } else if (word.includes("cat")) {
     drawCat();
   } else if (word.includes("dog")) {
     drawDog();
   } else if (word.includes("shoe")) {
     drawShoe();
+  } else if (word.includes("guitar")) {
+    drawGuitar();
   } else {
-    drawGeneric();
+    addSpiralFallback();
   }
 
   return strokes;
 }
+
 
 
 
@@ -755,9 +831,13 @@ function startAIDrawing(room) {
     }
     const evt = strokes[i++];
     io.to(room.code).emit("remoteDrawEvent", evt);
+    
+    // If this was a penUp, add extra delay before next stroke
+    if (evt.type === "penUp") {
+      i++; // skip next iteration to allow client to reset
+    }
   }, 60);
 }
-
 // ---------- AI guessing helpers ----------
 
 function maybeAIGuess(room) {
@@ -765,10 +845,13 @@ function maybeAIGuess(room) {
 
   const aiPlayer = room.players.find((p) => p.isAI);
   if (!aiPlayer) return;
+  if (!room.currentWord) return;
 
   const drawer = room.players[room.drawerIndex];
   if (!drawer || drawer.id === aiPlayer.id) return;
 
+  if (room.aiGuessCount == null) room.aiGuessCount = 0;
+  
   const now = Date.now();
   if (room.aiGuessCount >= 6) return; // max guesses / round
   if (now - (room.aiLastGuessTime || 0) < 5000) return; // at most once per 5s
@@ -776,164 +859,169 @@ function maybeAIGuess(room) {
   if (!room.aiStrokeHistory || room.aiStrokeHistory.length < 40) return;
 
   const guess = computeAiGuessForRoom(room);
-  room.aiLastGuessTime = now;
-  room.aiGuessCount++;
+  if (!guess) return;
 
+  room.aiGuessCount += 1;
+  room.aiLastGuessTime = now;
   applyAiGuess(room, aiPlayer, guess);
 }
 
 function computeAiGuessForRoom(room) {
-  if (!room.currentWord) return null;
+  if (!room || !room.currentWord) return null;
 
-  const strokes = room.aiStrokeHistory || [];
-  const mask = room.maskedWord || "";
-  const used = (room.aiUsedGuesses || []).map((w) => w.toLowerCase());
   const target = room.currentWord.toLowerCase();
-  const targetLen = room.currentWord.length;
+  const len = target.length || 0;
+  const mask = room.maskedWord || "";
+  const diff = (room.aiDifficulty || "hard").toLowerCase();
 
-  // ---------- 1. Info metrics (letters + time) ----------
+  if (room.aiGuessCount == null) room.aiGuessCount = 0;
+  const guessNumber = room.aiGuessCount + 1; // the guess we are about to make
+
+  // ---------- EASY MODE ----------
+  // First few guesses: completely random nonsense, *not* from WORDS.
+  if (diff === "easy") {
+    if (guessNumber <= 3) {
+      // 🔹 first 3 guesses: nonsense words
+      return randomNonsenseWord(len);
+    } else {
+      // After first few guesses, still fairly dumb:
+      // pick random word from WORDS of correct length (ignoring mask).
+      if (typeof WORDS !== "undefined" && Array.isArray(WORDS)) {
+        let candidates = WORDS.filter(
+          (w) => (w || "").length === len
+        );
+        if (candidates.length === 0) {
+          candidates = WORDS.slice();
+        }
+        if (candidates.length > 0) {
+          const idx = Math.floor(Math.random() * candidates.length);
+          return candidates[idx];
+        }
+      }
+      // fallback
+      return randomNonsenseWord(len);
+    }
+  }
+
+  // ---------- MEDIUM MODE ----------
+  // Guesses are random, but:
+  //   - always from WORDS
+  //   - length matches the target word
+  if (diff === "medium") {
+    if (typeof WORDS !== "undefined" && Array.isArray(WORDS)) {
+      // Start with words of the same length
+      let candidates = WORDS.filter(
+        (w) => (w || "").length === len
+      );
+
+      // Optionally: also respect revealed letters in the mask
+      // (random among matching words)
+      if (typeof filterWordsByMask === "function") {
+        const filtered = filterWordsByMask(candidates, room);
+        if (filtered && filtered.length > 0) {
+          candidates = filtered;
+        }
+      }
+
+      if (candidates.length === 0) {
+        candidates = WORDS.slice(); // fallback to any word
+      }
+
+      if (candidates.length > 0) {
+        const idx = Math.floor(Math.random() * candidates.length);
+        return candidates[idx];
+      }
+    }
+    // fallback if WORDS is not defined
+    return randomNonsenseWord(len);
+  }
+
+  // ---------- HARD MODE (existing smarter logic) ----------
+  // Keep your previous "smart" behavior for hard difficulty.
+  // If you already had a decent version, you can paste it here.
+  // Here’s a compact but still smart-ish version:
+
+  const totalTime = typeof ROUND_DURATION === "number" ? ROUND_DURATION : 180;
+  const elapsed =
+    typeof room.roundTimeLeft === "number"
+      ? Math.max(0, totalTime - room.roundTimeLeft)
+      : 0;
+
+  // Basic info score from mask
   let revealed = 0;
   for (let i = 0; i < mask.length; i++) {
     const c = mask[i];
     if (c !== "_" && c !== " ") revealed++;
   }
-  const knownRatio = targetLen > 0 ? revealed / targetLen : 0;
-
-  const totalTime = ROUND_DURATION;
-  const elapsed =
-    typeof room.roundTimeLeft === "number"
-      ? Math.max(0, totalTime - room.roundTimeLeft)
-      : 0;
+  const knownRatio = len > 0 ? revealed / len : 0;
   const timeRatio = Math.max(0, Math.min(1, elapsed / totalTime));
+  const infoScore = Math.max(knownRatio, timeRatio);
 
-  // ---------- 2. Aggressive "cheat" probability ----------
-  // We want it to guess the correct word ASAP.
-  // Baseline is already high; increases slightly with info.
-  let baseCheat = 0.75; // 75% chance even at the very start
+  // Hard bot "cheat" probability – pretty strong
+  const cheatBase = 0.45;
+  const cheatGain = 0.55;
+  const maxCheat = 0.98;
 
-  // If there are some strokes, increase confidence
-  if (strokes.length > 20) baseCheat = 0.85;
-  if (strokes.length > 60) baseCheat = 0.92;
+  const cheatProbability = Math.min(
+    maxCheat,
+    cheatBase + cheatGain * infoScore
+  );
 
-  // If a good chunk of letters is revealed, be almost certain
-  if (knownRatio > 0.4) baseCheat = Math.max(baseCheat, 0.95);
-  if (knownRatio > 0.7) baseCheat = Math.max(baseCheat, 0.98);
-
-  // Slight bump over time, but it's already high from the start
-  const cheatProbability = Math.min(0.99, baseCheat + timeRatio * 0.05);
-
-  // If we decide to "cheat", just guess the correct word immediately
-  if (!used.includes(target) && Math.random() < cheatProbability) {
-    return room.currentWord; // fastest possible correct guess
+  if (Math.random() < cheatProbability) {
+    // Knows the correct word
+    return room.currentWord;
   }
 
-  // ---------- 3. Build candidate list based on mask & used guesses ----------
-  let candidates = filterWordsByMask(WORDS, room); // matches length + mask
-  candidates = candidates.filter((w) => !used.includes(w.toLowerCase()));
+  // Otherwise, pick the best-matching candidate from WORDS
+  let candidates =
+    typeof WORDS !== "undefined" && Array.isArray(WORDS)
+      ? WORDS.slice()
+      : [room.currentWord];
 
-  // If no candidates left from mask, fall back to entire vocabulary minus used
-  if (candidates.length === 0) {
-    candidates = WORDS.filter((w) => !used.includes(w.toLowerCase()));
-  }
-
-  if (candidates.length === 0) {
-    return null;
-  }
-
-  // If we have very few strokes and almost no letters, just pick random
-  if (strokes.length < 30 && knownRatio < 0.2) {
-    return candidates[Math.floor(Math.random() * candidates.length)];
-  }
-
-  // ---------- 4. Use drawing geometry (shape + complexity) to rank ----------
-  let minX = Infinity,
-    maxX = -Infinity,
-    minY = Infinity,
-    maxY = -Infinity;
-
-  for (const p of strokes) {
-    if (p.x < minX) minX = p.x;
-    if (p.x > maxX) maxX = p.x;
-    if (p.y < minY) minY = p.y;
-    if (p.y > maxY) maxY = p.y;
-  }
-
-  const w = maxX - minX;
-  const h = maxY - minY;
-  const area = w > 0 && h > 0 ? w * h : 1;
-  const pointCount = strokes.length;
-  const density = pointCount / area;
-
-  let strokeShape = "generic";
-  if (w > 0 && h > 0) {
-    const aspect = w / h;
-    if (area > 50000 && aspect > 0.7 && aspect < 1.3) {
-      strokeShape = "round";
-    } else if (aspect > 1.4) {
-      strokeShape = "wide";
-    } else if (aspect < 0.7) {
-      strokeShape = "tall";
+  if (typeof filterWordsByMask === "function") {
+    const filtered = filterWordsByMask(candidates, room);
+    if (filtered && filtered.length > 0) {
+      candidates = filtered;
     }
   }
 
-  let strokeComplexity = "medium";
-  if (density < 0.0002) strokeComplexity = "low";
-  else if (density > 0.0007) strokeComplexity = "high";
+  if (!candidates || candidates.length === 0) {
+    return room.currentWord;
+  }
 
-  // ---------- 5. Score each candidate ----------
+  function letterMatchScore(maskStr, w) {
+    let s = 0;
+    const L = Math.min(maskStr.length, w.length);
+    for (let i = 0; i < L; i++) {
+      const m = maskStr[i];
+      if (m !== "_" && m !== " " && m === w[i]) s += 1;
+    }
+    return s;
+  }
+
   let bestWord = null;
   let bestScore = -Infinity;
-
-  for (const wrd of candidates) {
-    const profile = WORD_PROFILES[wrd] || {
-      shape: "generic",
-      complexity: "medium"
-    };
-
-    let score = 0;
-
-    // Shape match
-    if (profile.shape === strokeShape) {
-      score += 4;
-    } else if (strokeShape === "generic" || profile.shape === "generic") {
-      score += 1;
-    } else {
-      score -= 1;
-    }
-
-    // Complexity match
-    if (profile.complexity === strokeComplexity) {
-      score += 3;
-    } else if (
-      (strokeComplexity === "medium" && profile.complexity !== "medium") ||
-      (profile.complexity === "medium" && strokeComplexity !== "medium")
-    ) {
-      score -= 0.5;
-    } else {
-      score -= 1;
-    }
-
-    // Repeated-letter pattern bonus (from the mask)
-    if (mask) {
-      const patternBonus = patternMatchScore(mask, wrd);
-      score += patternBonus;
-    }
-
-    // Slight bias to shorter words early; longer words later
-    if (wrd.length <= 4 && timeRatio < 0.5) score += 0.5;
-    if (wrd.length >= 7 && timeRatio > 0.5) score += 0.5;
-
-    // Small randomness so it doesn't behave identically every game
+  for (const w of candidates) {
+    let score = letterMatchScore(mask, w);
+    if ((w || "").length === len) score += 0.5;
+    if ((w || "").toLowerCase() === target) score += 2;
     score += Math.random() * 0.2;
-
     if (score > bestScore) {
       bestScore = score;
-      bestWord = wrd;
+      bestWord = w;
     }
   }
 
-  return bestWord || candidates[Math.floor(Math.random() * candidates.length)];
+  if (!bestWord) {
+    bestWord = candidates[Math.floor(Math.random() * candidates.length)];
+  }
+
+  return bestWord;
 }
+
+
+
+
 function patternMatchScore(mask, word) {
   if (!mask || !word || word.length !== mask.length) return 0;
 
@@ -1236,29 +1324,45 @@ io.on("connection", (socket) => {
   });
 
   // Host adds AI player
-socket.on("addAIPlayer", ({ roomCode }) => {
-  console.log("addAIPlayer requested by", socket.id, "for room", roomCode);
-  const room = getRoom(roomCode);
-  if (!room) {
-    console.log(" -> room not found");
-    return;
-  }
-  if (room.hostId !== socket.id) {
-    console.log(" -> rejected: not host (hostId is", room.hostId, ")");
-    return;
-  }
+  socket.on("addAIPlayer", ({ roomCode, difficulty }) => {
+    const room = getRoom(roomCode);
+    if (!room) return;
+    if (room.hostId !== socket.id) return; // only host can add AI
 
-  if (room.players.some((p) => p.isAI)) {
-    console.log(" -> AI already present");
-    return;
-  }
+    // For now only one AI
+    if (room.players.some((p) => p.isAI)) return;
 
-  const aiPlayer = {
-    id: `AI:${room.code}`,
-    name: "AI Bot",
-    score: 0,
-    isAI: true
-  };
+    const allowed = ["easy", "medium", "hard"];
+    const diff =
+      allowed.includes((difficulty || "").toLowerCase())
+        ? difficulty.toLowerCase()
+        : "medium";
+
+    const pretty =
+      diff.charAt(0).toUpperCase() + diff.slice(1); // Easy / Medium / Hard
+
+    const aiPlayer = {
+      id: `AI:${room.code}`,
+      name: `AI Bot (${pretty})`,
+      score: 0,
+      isAI: true,
+      difficulty: diff
+    };
+
+  // Store difficulty on the room for the AI guess logic
+  room.aiDifficulty = diff;
+
+  room.players.push(aiPlayer);
+  broadcastPlayerList(room);
+  broadcastScores(room);
+
+  io.to(room.code).emit("chatMessage", {
+    name: "System",
+    text: `AI Bot (${pretty}) joined the room.`,
+    type: "system"
+  });
+});
+
 
   room.players.push(aiPlayer);
   console.log(" -> AI Bot added. Total players:", room.players.length);
@@ -1277,12 +1381,12 @@ socket.on("addAIPlayer", ({ roomCode }) => {
     const room = getRoom(roomCode);
     if (!room) return;
     if (room.hostId !== socket.id) return;
-    if (room.players.length < 2) {
-      socket.emit("roomError", {
-        message: "Need at least 2 players (human or AI) to start."
-      });
+    
+    // Allow game to start with just the host (at least 1 player total)
+    if (room.players.length < 1) {  // ✓ Only 1 player (host) needed
+      socket.emit("roomError", { message: "Need at least 1 player." });
       return;
-    }
+   } 
 
     room.currentRound = 0;
     room.history = [];
@@ -1407,7 +1511,6 @@ socket.on("addAIPlayer", ({ roomCode }) => {
       }
     }
   });
-});
 
 server.listen(PORT, "0.0.0.0", () => {
   console.log(`Server listening on port ${PORT}`);
