@@ -227,24 +227,26 @@ button:disabled {
 }
 
 .room-code-box {
-  background: var(--accent-soft);
+  background: white;
   border-radius: var(--radius-md);
   padding: 0.5rem 0.9rem;
-  text-align: right;
+  text-align: left;
   border: 1px solid rgba(250, 204, 21, 0.4);
 }
 
 .room-code-box span {
   display: block;
   font-size: 0.75rem;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
-  color: var(--muted);
+  color: navy;
 }
 
 .room-code-box strong {
   font-size: 1.3rem;
   letter-spacing: 0.15em;
+  color: navy;
 }
 
 .lobby-body {
@@ -264,7 +266,7 @@ button:disabled {
   margin: 0;
   padding: 0;
   border-radius: var(--radius-md);
-  background: #020617;
+  background: rgb(2, 6, 23, 0.3);
   border: 1px solid var(--border-subtle);
 }
 
