@@ -269,7 +269,7 @@ function setupSocketHandlers() {
     if (addAIBtn) addAIBtn.disabled = false;
 
     players = pList;           // keep full player objects
-    pdateLobbyPlayerList(pList);
+    updateLobbyPlayerList(pList);
 
   });
 

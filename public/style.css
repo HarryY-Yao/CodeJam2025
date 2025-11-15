@@ -27,6 +27,18 @@ body {
   color: var(--text);
 }
 
+h1, h2 {
+    color: white;
+}
+
+h1 {
+  font-size: 2.5rem;  
+}
+
+h2 {
+    font-size: 2rem;
+}
+
 .app-root {
   min-height: 100vh;
   display: flex;
@@ -64,7 +76,6 @@ body {
 }
 
 #logo {
-    margin: 0;
     align-self: center;
     justify-self: center;
     height: 13rem;
@@ -98,6 +109,7 @@ body {
   max-width: 600px;
   background: rgba(15, 23, 42, 0.2);
   border-radius: var(--radius-md);
+  max-height: 100%;
   padding: 3rem 2.5rem;
   /* border: 1px solid var(--border-subtle); */
 }
@@ -106,7 +118,7 @@ body {
     display: grid;
     flex: 1;
     grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: 1fr 4fr;
+    grid-template-rows: 1fr 3fr;
     align-items: center;
     justify-items: center;
     border: 1px solid var(--border-subtle);
@@ -119,7 +131,7 @@ body {
 
 #instruction-header {
     grid-row: 1/1;
-    grid-column: 2/2;
+    grid-column: 1/-1;
 }
 
 .instruction-icon {
@@ -133,7 +145,8 @@ body {
     align-items: center;
     justify-content: center;
     text-align: center;
-    width: 100px;
+    font-size: 1.75rem;
+    width: 150px;
 }
 
 #step-1 {
@@ -251,7 +264,9 @@ button:disabled {
 
 .lobby-body {
   margin-top: 1.5rem;
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 0.7fr 1fr ;
   flex-wrap: wrap;
   gap: 1.5rem;
 }
@@ -268,6 +283,9 @@ button:disabled {
   border-radius: var(--radius-md);
   background: rgb(2, 6, 23, 0.3);
   border: 1px solid var(--border-subtle);
+  max-height: 150px;
+  overflow: scroll;
+  grid-row: 1/1;
 }
 
 #lobby-player-list li {
@@ -277,6 +295,26 @@ button:disabled {
 
 #lobby-player-list li:last-child {
   border-bottom: none;
+}
+
+#controls {
+    grid-column: 1/-1;
+    grid-row: 2/2;
+}
+
+.instruction-img {
+    width: 10rem;
+    height: 10rem;
+}
+
+#how-to-draw-header {
+    grid-row: 1/1;
+    grid-column: 1/-1;
+}
+
+.draw-instructions {
+    grid-row: 1/-1;
+    grid-column: 2/2;
 }
 
 /* Game layout */

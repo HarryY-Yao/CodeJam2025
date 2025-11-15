@@ -11,7 +11,7 @@
     <!-- ROOM SCREEN -->
     <section id="room-screen" class="screen">
       <div class="card">
-        <img id="logo" src="./CodeJamLogoUPDATED.png" alt="logo">
+        <img id="logo" src="./images/CodeJamLogoUPDATED.png" alt="">
 
         <div class="room-columns">
             <div class="room-panel">
@@ -33,7 +33,7 @@
                         <g id="SVGRepo_tracerCarrier" stroke-linecap="round" stroke-linejoin="round"/>
                         <g id="SVGRepo_iconCarrier"> <g> <g> <g> <path d="M430.101,0.041c-33.941,0-61.44,27.499-61.44,61.44v348.16c0,4.043,1.197,7.996,3.44,11.36l40.96,61.44 c8.106,12.16,25.974,12.16,34.081,0l40.96-61.44c2.243-3.364,3.44-7.317,3.44-11.36V61.481 C491.541,27.54,464.042,0.041,430.101,0.041z M430.101,41.001c11.32,0,20.48,9.16,20.48,20.48v40.96h-40.96v-40.96 C409.621,50.161,418.781,41.001,430.101,41.001z M430.101,434.16l-20.48-30.72V143.401h40.96V403.44L430.101,434.16z"/> <path d="M323.109,130.484c-0.025-0.031-0.048-0.062-0.073-0.092c-0.418-0.501-0.856-0.995-1.333-1.472L198.822,6.04 c-0.478-0.478-0.971-0.916-1.472-1.333c-0.03-0.025-0.062-0.049-0.092-0.073c-4.2-3.463-9.155-4.869-13.95-4.592H20.501 c-11.311,0-20.48,9.169-20.48,20.48v450.56c0,11.311,9.169,20.48,20.48,20.48h286.72c11.311,0,20.48-9.169,20.48-20.48V144.434 C327.978,139.64,326.572,134.685,323.109,130.484z M257.777,122.921h-52.957V69.964L257.777,122.921z M40.981,450.601v-409.6 h122.88v102.4c0,11.311,9.169,20.48,20.48,20.48h102.4v286.72H40.981z"/> <path d="M225.301,204.841H81.941c-11.311,0-20.48,9.169-20.48,20.48s9.169,20.48,20.48,20.48h143.36 c11.311,0,20.48-9.169,20.48-20.48S236.611,204.841,225.301,204.841z"/> <path d="M225.301,286.761H81.941c-11.311,0-20.48,9.169-20.48,20.48s9.169,20.48,20.48,20.48h143.36 c11.311,0,20.48-9.169,20.48-20.48S236.611,286.761,225.301,286.761z"/> <path d="M225.301,368.681H81.941c-11.311,0-20.48,9.169-20.48,20.48c0,11.311,9.169,20.48,20.48,20.48h143.36 c11.311,0,20.48-9.169,20.48-20.48C245.781,377.85,236.611,368.681,225.301,368.681z"/> </g> </g> </g> </g>
                     </svg>
-                    <p>Recieve or write your prompt!</p>
+                    <p>Recieve your prompt!</p>
                 </div>
                 
                 <div class="instruction-step" id="step-2">
@@ -59,7 +59,6 @@
       </div>
     </section>
 
-
     <!-- LOBBY SCREEN -->
     <section id="lobby-screen" class="screen hidden">
       <div class="card lobby">
@@ -77,8 +76,28 @@
         <div class="lobby-body">
           <div class="lobby-column">
             <h2>Players</h2>
-            <ul id="lobby-player-list"></ul>
+            <ul id="lobby-player-list">
+            </ul>
           </div>
+          
+          <div class="lobby-column instructions draw-instructions">
+            <h2 id="how-to-draw-header">How to Draw</h2>
+            <div class="instruction-step" id="draw-step">
+                <img class="instruction-img" src="./images/pointup.png" alt="palm">
+                <p>Draw!</p>
+            </div>
+
+            <div class="instruction-step" id="erase-step">
+                <img class="instruction-img" src="./images/palm.png" alt="palm">
+                <p>Erase!</p>
+            </div>
+
+            <div class="instruction-step" id="change-clr-step">
+                <img class="instruction-img" src="./images/ok.png" alt="palm">
+                <p>Change Colour!</p>
+            </div>
+          </div>
+
           <div class="lobby-column">
             <h2>Controls</h2>
             <p>Host can start the game when everyone has joined.</p>
@@ -98,6 +117,7 @@
             <button id="lobby-back-btn" class="secondary">Leave Room</button>
           </div>
 
+        </div>
         </div>
       </div>
     </section>
