@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Gesture Scribble</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <main class="app-root">
+    <!-- ROOM SCREEN -->
+    <section id="room-screen" class="screen">
+      <div class="card">
+        <h1>Gesture Scribble</h1>
+        <p class="subtitle">Host or join a room to start drawing.</p>
+
+        <div class="room-columns">
+          <div class="room-panel">
+            <h2>Host Game</h2>
+            <input id="host-name" type="text" placeholder="Your name" />
+            <button id="host-game-btn">Host Game</button>
+          </div>
+
+          <div class="room-panel">
+            <h2>Join Game</h2>
+            <input id="join-name" type="text" placeholder="Your name" />
+            <input id="join-code" type="text" placeholder="Room code" />
+            <button id="join-game-btn">Join Game</button>
+            <p id="join-error" class="error"></p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- LOBBY SCREEN -->
+    <section id="lobby-screen" class="screen hidden">
+      <div class="card lobby">
+        <header class="lobby-header">
+          <div>
+            <h1>Lobby</h1>
+            <p id="lobby-role-label" class="muted"></p>
+          </div>
+          <div class="room-code-box">
+            <span>Room Code</span>
+            <strong id="lobby-room-code">----</strong>
+          </div>
+        </header>
+
+        <div class="lobby-body">
+          <div class="lobby-column">
+            <h2>Players</h2>
+            <ul id="lobby-player-list"></ul>
+          </div>
+          <div class="lobby-column">
+            <h2>Controls</h2>
+            <p>Host can start the game when everyone has joined.</p>
+            <button id="lobby-start-btn" disabled>Start Game</button>
+            <button id="add-ai-btn" class="secondary">Add AI Player</button>
+            <button id="lobby-back-btn" class="secondary">Leave Room</button>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- GAME SCREEN -->
+    <section id="game-screen" class="screen hidden">
+      <div class="game-layout">
+        <!-- Left: camera + canvas -->
+        <div class="canvas-column">
+          <div class="canvas-wrapper camera-wrapper">
+            <video id="camera" autoplay playsinline muted></video>
+            <canvas id="drawCanvas" width="640" height="480"></canvas>
+            <canvas id="landmarkCanvas" width="640" height="480"></canvas>
+          </div>
+          <div class="toolbar">
+            <div class="toolbar-group">
+              <button id="clear-canvas-btn" class="secondary">Clear</button>
+            </div>
+            <div class="toolbar-group">
+              <label>Line width</label>
+              <input id="line-width" type="range" min="2" max="24" value="8" />
+            </div>
+            <div class="toolbar-group">
+              <label>Colors</label>
+              <div class="color-row">
+                <button class="color-swatch active" data-color="#facc15"></button>
+                <button class="color-swatch" data-color="#22c55e"></button>
+                <button class="color-swatch" data-color="#3b82f6"></button>
+                <button class="color-swatch" data-color="#f97316"></button>
+                <button class="color-swatch" data-color="#e11d48"></button>
+              </div>
+              <input id="custom-color" type="color" value="#facc15" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: info, chat, scores -->
+        <div class="side-column">
+          <section class="round-panel">
+            <div class="round-header">
+              <div>
+                <h2 id="round-info">Waiting for game...</h2>
+                <p id="current-player-label" class="muted">Drawer: -</p>
+              </div>
+              <div class="timer-pill">
+                <span>Time</span>
+                <strong id="timer-value">180</strong>
+              </div>
+            </div>
+            <div class="word-display">
+              <span>Word:</span>
+              <strong id="word-display">_ _ _ _</strong>
+            </div>
+            <p class="muted small">
+              Draw: index finger up · Erase: open hand · Change color: OK sign
+            </p>
+          </section>
+
+          <section class="guess-panel">
+            <h3>Guesses</h3>
+            <p class="small muted">
+              All guesses are sent via chat box below.
+            </p>
+            <p id="guess-feedback" class="feedback"></p>
+          </section>
+
+          <section class="chat-panel">
+            <h3>Chat / Guess</h3>
+            <div id="chat-messages" class="chat-messages"></div>
+            <form id="chat-form">
+              <input
+                id="chat-input"
+                type="text"
+                placeholder="Type a message or guess..."
+                autocomplete="off"
+              />
+              <button type="submit">Send</button>
+            </form>
+          </section>
+
+          <section class="score-panel">
+            <h3>Scores</h3>
+            <ul id="score-list"></ul>
+            <button id="leave-game-btn" class="secondary full-width">
+              Leave Game
+            </button>
+          </section>
+
+          <section class="log-panel">
+            <h3>Game Log</h3>
+            <div id="message-log" class="log-messages"></div>
+          </section>
+        </div>
+      </div>
+
+      <!-- WORD CHOICE OVERLAY (drawer only) -->
+      <div id="word-choice-overlay" class="word-choice hidden">
+        <div class="word-choice-card">
+          <h3>Choose a word to draw</h3>
+          <p id="word-choice-round"></p>
+          <div id="word-choice-options" class="word-choice-options"></div>
+          <p class="hint small">Only you can see these words.</p>
+        </div>
+      </div>
+    </section>
+
+    <!-- END SCREEN -->
+    <section id="end-screen" class="screen hidden">
+      <div class="card end-card">
+        <h1>Game Over</h1>
+        <p id="final-summary"></p>
+        <h2>Final Scores</h2>
+        <ul id="final-score-list"></ul>
+        <button id="restart-btn">Back to Home</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- Socket.IO client -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- MediaPipe -->
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/hands/hands.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@mediapipe/drawing_utils/drawing_utils.js"></script>
+  <!-- Game logic -->
+  <script src="game.js"></script>
+</body>
+</html>
