@@ -14,6 +14,9 @@ let hostNameInput, joinNameInput, joinCodeInput;
 let hostGameBtn, joinGameBtn, joinErrorEl;
 let lobbyRoomCodeEl, lobbyPlayerListEl, lobbyRoleLabelEl;
 let lobbyStartBtn, lobbyBackBtn, addAIBtn;
+let aiDifficultySelect;
+
+
 
 // Game UI
 let roundInfoEl, currentPlayerLabel, timerValueEl, wordDisplayEl;
@@ -35,9 +38,12 @@ let colorSwatches, customColorInput, eraserBtn;
 // Drawing state
 let lastX = null;
 let lastY = null;
+
+
 let currentLineWidth = 8;
 let currentColor = "#facc15";
 const eraserRadius = 35;
+
 let eraserActive = false;
 
 // Round state
@@ -45,6 +51,8 @@ let currentRound = 1;
 let maxRounds = 3;
 let currentDrawerIndex = 0;
 let roundActive = false;
+
+let iAmDrawer = false;
 
 // MediaPipe
 let hands = null;
@@ -54,6 +62,9 @@ let camera = null;
 const COLOR_PINCH_THRESHOLD = 0.06;
 const MODE_GESTURE_COOLDOWN = 800;
 let lastModeChangeTime = 0;
+
+
+
 
 // =================== DOM SETUP ===================
 
@@ -79,6 +90,8 @@ document.addEventListener("DOMContentLoaded", () => {
   lobbyStartBtn     = document.getElementById("lobby-start-btn");
   lobbyBackBtn      = document.getElementById("lobby-back-btn");
   addAIBtn          = document.getElementById("add-ai-btn");
+  aiDifficultySelect = document.getElementById("ai-difficulty");
+  
 
   // Game UI
   roundInfoEl        = document.getElementById("round-info");
@@ -126,9 +139,11 @@ document.addEventListener("DOMContentLoaded", () => {
   if (addAIBtn) {
     addAIBtn.addEventListener("click", () => {
       if (!isHost || !currentRoomCode) return;
-      socket.emit("addAIPlayer", { roomCode: currentRoomCode });
+      const difficulty = aiDifficultySelect ? aiDifficultySelect.value : "hard";
+      socket.emit("addAIPlayer", { roomCode: currentRoomCode, difficulty });
     });
   }
+
 
   if (leaveGameBtn) {
     leaveGameBtn.addEventListener("click", () => {
@@ -236,9 +251,9 @@ function logMessage(msg, cls) {
 // =================== SOCKET HANDLERS ===================
 
 function amIDrawer() {
-  const idx = players.indexOf(myPlayerName);
-  return idx === currentDrawerIndex;
+  return iAmDrawer;
 }
+
 
 function setupSocketHandlers() {
   socket.on("roomCreated", ({ roomCode, players: pList, isHost: hostFlag }) => {
@@ -253,8 +268,9 @@ function setupSocketHandlers() {
     lobbyStartBtn.disabled = false;
     if (addAIBtn) addAIBtn.disabled = false;
 
-    players = pList.map((p) => p.name);
-    updateLobbyPlayerList(pList);
+    players = pList;           // keep full player objects
+    pdateLobbyPlayerList(pList);
+
   });
 
   socket.on("roomJoined", ({ roomCode, players: pList, isHost: hostFlag }) => {
@@ -271,8 +287,9 @@ function setupSocketHandlers() {
     lobbyStartBtn.disabled = !isHost;
     if (addAIBtn) addAIBtn.disabled = !isHost;
 
-    players = pList.map((p) => p.name);
+    players = pList;
     updateLobbyPlayerList(pList);
+
   });
 
   socket.on("roomError", ({ message }) => {
@@ -280,9 +297,10 @@ function setupSocketHandlers() {
   });
 
   socket.on("playerListUpdate", (pList) => {
-    players = pList.map((p) => p.name);
+    players = pList;
     updateLobbyPlayerList(pList);
   });
+
 
   socket.on("gameStarted", () => {
     lobbyScreen.classList.add("hidden");
@@ -293,16 +311,25 @@ function setupSocketHandlers() {
     clearLandmarks();
   });
 
-  socket.on("roundPreparing", ({ round, maxRounds: mr, drawerName }) => {
+  socket.on("roundPreparing", ({ round, maxRounds: mr, drawerName, drawerId }) => {
     currentRound = round;
     maxRounds = mr;
     roundInfoEl.textContent = `Round ${round} of ${mr}`;
     currentPlayerLabel.textContent = `Drawer: ${drawerName}`;
     wordDisplayEl.textContent = "Waiting for word...";
     guessFeedback.textContent = "";
+
+    // Prefer drawerId if the server sends it; otherwise fallback to name
+    if (drawerId) {
+      iAmDrawer = (drawerId === socket.id);
+    } else {
+      iAmDrawer = (drawerName === myPlayerName);
+    }
+
     const logEl = document.getElementById("message-log");
     if (logEl) logEl.textContent = "";
   });
+
 
   socket.on("chooseWord", ({ roomCode, round, maxRounds: mr, options }) => {
     wordChoiceOverlay   = document.getElementById("word-choice-overlay");
@@ -326,10 +353,9 @@ function setupSocketHandlers() {
     wordChoiceOverlay.classList.remove("hidden");
   });
 
-  socket.on("roundInfo", ({ round, maxRounds: mr, drawerName, maskedWord }) => {
+  socket.on("roundInfo", ({ round, maxRounds: mr, drawerName, drawerId, maskedWord }) => {
     currentRound = round;
     maxRounds = mr;
-    currentDrawerIndex = players.indexOf(drawerName);
     roundInfoEl.textContent = `Round ${round} of ${mr}`;
     currentPlayerLabel.textContent = `Drawer: ${drawerName}`;
     wordDisplayEl.textContent = maskedWord;
@@ -339,7 +365,15 @@ function setupSocketHandlers() {
     clearDrawingCanvas();
     clearLandmarks();
     roundActive = true;
+
+    // Again: prefer drawerId if available
+    if (drawerId) {
+      iAmDrawer = (drawerId === socket.id);
+    } else {
+      iAmDrawer = (drawerName === myPlayerName);
+    }
   });
+
 
   socket.on("yourWord", ({ word }) => {
     logMessage(`Your word is: ${word}`, "system");
@@ -355,6 +389,7 @@ function setupSocketHandlers() {
 
   socket.on("roundEnded", ({ round, word, drawerName, correctGuessers, reason }) => {
     roundActive = false;
+    iAmDrawer = false;  // <- add this
     const msg =
       reason === "allGuessed"
         ? `Round ${round} ended. Everyone guessed "${word}".`
@@ -363,8 +398,10 @@ function setupSocketHandlers() {
     logMessage(msg, "system");
   });
 
+
   socket.on("gameOver", ({ scores, history }) => {
     roundActive = false;
+    iAmDrawer = false;
     gameScreen.classList.add("hidden");
     endScreen.classList.remove("hidden");
 
@@ -410,9 +447,16 @@ function setupSocketHandlers() {
   });
 
   socket.on("remoteDrawEvent", (event) => {
-    if (event.type === "draw") drawAtNetwork(event);
-    if (event.type === "erase") eraseAtNetwork(event);
+    if (event.type === "draw") {
+      drawAtNetwork(event);
+    }
+    if (event.type === "erase") {
+      eraseAtNetwork(event);
+    }
   });
+
+
+
 
   socket.on("clearCanvasAll", () => {
     clearDrawingCanvas();
@@ -427,6 +471,7 @@ function clearDrawingCanvas() {
   lastX = null;
   lastY = null;
 }
+
 
 function clearLandmarks() {
   if (!lctx) return;
@@ -523,19 +568,38 @@ function sendErase(x, y) {
   });
 }
 
+function handleRemotePenUp() {
+  // Break the current remote stroke
+  lastRemoteX = null;
+  lastRemoteY = null;
+}
+
+function handleRemotePenDown() {
+  // Start of a new stroke: next draw begins fresh
+  lastRemoteX = null;
+  lastRemoteY = null;
+}
+
+
 function drawAtNetwork({ x, y, color, lineWidth }) {
   if (!ctx) return;
+
   ctx.save();
   ctx.lineWidth = lineWidth || currentLineWidth;
   ctx.lineCap = "round";
   ctx.globalCompositeOperation = "source-over";
   ctx.strokeStyle = color || "#facc15";
+
   ctx.beginPath();
   ctx.moveTo(x, y);
-  ctx.lineTo(x + 0.01, y + 0.01);
+  ctx.lineTo(x + 0.01, y + 0.01); // tiny segment -> looks like a dot
   ctx.stroke();
   ctx.restore();
 }
+
+
+
+
 
 function eraseAtNetwork({ x, y }) {
   eraseAt(x, y);
