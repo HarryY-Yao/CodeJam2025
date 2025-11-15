@@ -54,6 +54,9 @@ const WORD_PROFILES = {
   camera:   { shape: "wide",    complexity: "medium" }
 };
 
+const ROUND_DURATION = 180;
+
+
 
 function makeRoomCode() {
   const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
@@ -185,15 +188,19 @@ function chooseWordOptions() {
 function createAIStrokeSequence(wordRaw) {
   const word = (wordRaw || "").toLowerCase().trim();
   const strokes = [];
-  const color = "#3b82f6";
+  let currentColor = "#3b82f6"; // default blue
   const lineWidth = 7;
   const W = 640;
   const H = 480;
   const cx = W / 2;
   const cy = H / 2;
 
+  function setColor(color) {
+    currentColor = color;
+  }
+
   function addPoint(x, y) {
-    strokes.push({ type: "draw", x, y, color, lineWidth });
+    strokes.push({ type: "draw", x, y, color: currentColor, lineWidth });
   }
 
   function addLine(x1, y1, x2, y2, segments = 12) {
@@ -238,10 +245,12 @@ function createAIStrokeSequence(wordRaw) {
     }
   }
 
-  // === Simple icons per word ===
+  // === Simple icons per word, now with colors ===
 
   function drawSun() {
+    setColor("#fbbf24"); // yellow
     addCircleOutline(cx, cy, 40);
+    setColor("#f97316"); // orange rays
     const rayLen = 70;
     for (let i = 0; i < 8; i++) {
       const angle = (2 * Math.PI * i) / 8;
@@ -254,6 +263,7 @@ function createAIStrokeSequence(wordRaw) {
   }
 
   function drawMoon() {
+    setColor("#e5e7eb"); // light gray
     addCircleOutline(cx, cy, 40);
     const offset = 18;
     const r = 40;
@@ -270,9 +280,11 @@ function createAIStrokeSequence(wordRaw) {
   }
 
   function drawBall() {
+    setColor("#ef4444"); // red ball
     addCircleOutline(cx, cy, 45);
-    addLine(cx - 45, cy, cx + 45, cy);
-    addLine(cx, cy - 45, cx, cy + 45);
+    setColor("#111827");
+    //addLine(cx - 45, cy, cx + 45, cy);
+    //addLine(cx, cy - 45, cx, cy + 45);
   }
 
   function drawPizza() {
@@ -283,13 +295,19 @@ function createAIStrokeSequence(wordRaw) {
     const leftY = cy + r * 0.3;
     const rightX = cx + r;
     const rightY = cy + r * 0.3;
+
+    setColor("#f97316"); // crust line
     addLine(tipX, tipY, leftX, leftY);
     addLine(tipX, tipY, rightX, rightY);
     addLine(leftX, leftY, rightX, rightY);
-    // crust
+
+    // crust ridge
+    setColor("#92400e");
     addLine(leftX, leftY, cx, leftY + 10);
     addLine(cx, leftY + 10, rightX, rightY);
-    // toppings
+
+    // toppings (pepperoni)
+    setColor("#b91c1c");
     addCircleOutline(cx - 20, cy - 10, 6, 10);
     addCircleOutline(cx + 15, cy, 6, 10);
     addCircleOutline(cx, cy + 15, 6, 10);
@@ -300,16 +318,25 @@ function createAIStrokeSequence(wordRaw) {
     const h = 110;
     const baseX = cx - w / 2;
     const baseY = cy;
+
+    setColor("#3b82f6"); // blue walls
     addRectOutline(baseX, baseY, w, h);
-    // roof
+
+    setColor("#b91c1c"); // red roof
     addLine(baseX, baseY, cx, baseY - 80);
     addLine(cx, baseY - 80, baseX + w, baseY);
-    // door
+
+    setColor("#4b5563"); // gray door
     addRectOutline(cx - 20, baseY + 40, 40, 70);
   }
 
   function drawTree() {
-    addRectOutline(cx - 15, cy + 10, 30, 80); // trunk
+    // trunk
+    setColor("#92400e");
+    addRectOutline(cx - 15, cy + 10, 30, 80);
+
+    // leaves
+    setColor("#22c55e");
     addCircleOutline(cx, cy - 10, 40);
     addCircleOutline(cx - 25, cy, 30, 18);
     addCircleOutline(cx + 25, cy, 30, 18);
@@ -320,17 +347,28 @@ function createAIStrokeSequence(wordRaw) {
     const bodyH = 50;
     const baseX = cx - bodyW / 2;
     const baseY = cy;
+
+    setColor("#3b82f6"); // blue body
     addRectOutline(baseX, baseY, bodyW, bodyH);
     addRectOutline(cx - 40, baseY - 30, 80, 30); // cabin
+
+    setColor("#111827"); // wheels
     addCircleOutline(cx - 60, baseY + bodyH + 18, 18, 16);
     addCircleOutline(cx + 60, baseY + bodyH + 18, 18, 16);
   }
 
   function drawTrain() {
+    setColor("#3b82f6");
     addRectOutline(cx - 120, cy - 30, 60, 60);
+    setColor("#10b981");
     addRectOutline(cx - 60, cy - 20, 60, 50);
+    setColor("#f97316");
     addRectOutline(cx, cy - 30, 80, 60);
+
+    setColor("#6b7280");
     addRectOutline(cx - 105, cy - 60, 20, 30); // chimney
+
+    setColor("#111827");
     addCircleOutline(cx - 95, cy + 40, 14, 12);
     addCircleOutline(cx - 35, cy + 40, 14, 12);
     addCircleOutline(cx + 25, cy + 40, 14, 12);
@@ -342,8 +380,12 @@ function createAIStrokeSequence(wordRaw) {
     const h = 90;
     const baseX = cx - w / 2;
     const baseY = cy - h / 2;
+
+    setColor("#10b981"); // green cover
     addRectOutline(baseX, baseY, w, h);
-    addLine(cx, baseY, cx, baseY + h); // spine
+
+    setColor("#111827"); // spine & lines
+    addLine(cx, baseY, cx, baseY + h);
     addLine(baseX + 10, baseY + 20, baseX + w - 10, baseY + 20);
     addLine(baseX + 10, baseY + 45, baseX + w - 10, baseY + 45);
   }
@@ -353,8 +395,14 @@ function createAIStrokeSequence(wordRaw) {
     const h = 150;
     const x = cx - w / 2;
     const y = cy - h / 2;
+
+    setColor("#111827"); // dark outline
     addRectOutline(x, y, w, h);
+
+    setColor("#0ea5e9"); // screen
     addRectOutline(x + 8, y + 12, w - 16, h - 40);
+
+    setColor("#6b7280"); // button
     addCircleOutline(cx, y + h - 18, 5, 10);
   }
 
@@ -363,9 +411,17 @@ function createAIStrokeSequence(wordRaw) {
     const h = 80;
     const x = cx - w / 2;
     const y = cy - h / 2;
+
+    setColor("#374151"); // body
     addRectOutline(x, y, w, h);
-    addRectOutline(x + 10, y - 20, 50, 20);
+
+    setColor("#111827");
+    addRectOutline(x + 10, y - 20, 50, 20); // top
+
+    setColor("#fbbf24"); // lens
     addCircleOutline(cx, cy, 28, 20);
+
+    setColor("#ef4444"); // small light
     addRectOutline(x + w - 30, y + 10, 15, 10);
   }
 
@@ -374,12 +430,20 @@ function createAIStrokeSequence(wordRaw) {
     const bodyH = 160;
     const x = cx - bodyW / 2;
     const y = cy - bodyH / 2;
+
+    setColor("#e5e7eb"); // light body
     addRectOutline(x, y, bodyW, bodyH);
+
+    setColor("#ef4444"); // nose
     addLine(x, y, cx, y - 40);
     addLine(cx, y - 40, x + bodyW, y);
+
+    setColor("#f97316"); // flames
     addLine(x, y + bodyH, x - 25, y + bodyH + 40);
     addLine(x + bodyW, y + bodyH, x + bodyW + 25, y + bodyH + 40);
-    addCircleOutline(cx, cy - 20, 12, 16); // window
+
+    setColor("#0ea5e9"); // window
+    addCircleOutline(cx, cy - 20, 12, 16);
   }
 
   function drawFish() {
@@ -387,32 +451,44 @@ function createAIStrokeSequence(wordRaw) {
     const x1 = cx - len / 2;
     const x2 = cx + len / 2;
     const y = cy;
+
+    setColor("#0ea5e9"); // blue fish
     addLine(x1, y, x2, y);
     addLine(x1, y, cx - 20, y - 20);
     addLine(x1, y, cx - 20, y + 20);
     addLine(x2, y, x2 + 30, y - 20);
     addLine(x2, y, x2 + 30, y + 20);
+
+    setColor("#111827");
     addCircleOutline(cx - 30, y - 8, 4, 8); // eye
   }
 
   function drawUmbrella() {
     const r = 80;
-    addCircleOutline(cx, cy, r, 24);       // canopy arc-ish
-    addLine(cx - r, cy, cx + r, cy);       // flat bottom
-    addLine(cx, cy, cx, cy + 80);          // handle
+    setColor("#ec4899"); // pink canopy
+    addCircleOutline(cx, cy, r, 24);
+    addLine(cx - r, cy, cx + r, cy);
+
+    setColor("#111827"); // handle
+    addLine(cx, cy, cx, cy + 80);
     addArcSegment(cx, cy + 80, 18, Math.PI, Math.PI * 1.5, 10);
   }
 
   function drawFlower() {
-    addCircleOutline(cx, cy, 12, 12); // center
+    setColor("#facc15"); // center
+    addCircleOutline(cx, cy, 12, 12);
+
     const petalR = 30;
+    setColor("#f97316");
     for (let i = 0; i < 6; i++) {
       const angle = (2 * Math.PI * i) / 6;
       const px = cx + petalR * Math.cos(angle);
       const py = cy + petalR * Math.sin(angle);
       addCircleOutline(px, py, 16, 16);
     }
-    addLine(cx, cy + 12, cx, cy + 80); // stem
+
+    setColor("#22c55e"); // stem & leaves
+    addLine(cx, cy + 12, cx, cy + 80);
     addLine(cx, cy + 40, cx - 25, cy + 55);
     addLine(cx, cy + 55, cx - 10, cy + 65);
   }
@@ -422,7 +498,11 @@ function createAIStrokeSequence(wordRaw) {
     const rInner = 70;
     const start = -Math.PI / 4;
     const end = (5 * Math.PI) / 4;
+
+    setColor("#facc15");
     addArcSegment(cx, cy, rOuter, start, end, 22);
+
+    setColor("#fbbf24");
     addArcSegment(cx, cy + 20, rInner, start, end, 22);
   }
 
@@ -431,43 +511,64 @@ function createAIStrokeSequence(wordRaw) {
     const x1 = cx - len / 2;
     const x2 = cx + len / 2;
     const y = cy;
+
+    setColor("#facc15"); // body
     addLine(x1, y - 10, x2, y - 10);
     addLine(x1, y + 10, x2, y + 10);
-    addLine(x1, y - 10, x1, y + 10); // back
+
+    setColor("#6b7280"); // back
+    addLine(x1, y - 10, x1, y + 10);
+
+    setColor("#f97316"); // tip
     addLine(x2, y - 10, x2 + 25, y);
     addLine(x2, y + 10, x2 + 25, y);
+
+    setColor("#111827"); // center line
     addLine(x1 + 10, y, x2 - 10, y);
   }
 
   function drawChair() {
+    setColor("#6b7280");
     addRectOutline(cx - 40, cy - 40, 80, 40); // backrest
-    addRectOutline(cx - 40, cy, 80, 30);      // seat
+
+    setColor("#9ca3af");
+    addRectOutline(cx - 40, cy, 80, 30); // seat
+
+    setColor("#111827");
     addLine(cx - 35, cy + 30, cx - 35, cy + 80);
     addLine(cx + 35, cy + 30, cx + 35, cy + 80);
   }
 
   function drawTable() {
-    addRectOutline(cx - 100, cy - 20, 200, 40); // top
+    setColor("#9ca3af");
+    addRectOutline(cx - 100, cy - 20, 200, 40);
+    setColor("#4b5563");
     addLine(cx - 80, cy + 20, cx - 80, cy + 80);
     addLine(cx + 80, cy + 20, cx + 80, cy + 80);
   }
 
   function drawCookie() {
+    setColor("#eab308");
     addCircleOutline(cx, cy, 45, 24);
+
+    setColor("#b45309"); // chips
     addCircleOutline(cx - 15, cy - 10, 4, 8);
     addCircleOutline(cx + 10, cy - 5, 4, 8);
     addCircleOutline(cx, cy + 15, 4, 8);
   }
 
   function drawCloud() {
+    setColor("#e5e7eb"); // light gray cloud
     addCircleOutline(cx - 35, cy, 35, 18);
     addCircleOutline(cx, cy - 15, 45, 18);
     addCircleOutline(cx + 35, cy, 35, 18);
   }
 
   function drawMountain() {
+    setColor("#6b7280");
     addLine(cx - 120, cy + 70, cx, cy - 80);
     addLine(cx, cy - 80, cx + 120, cy + 70);
+    setColor("#9ca3af");
     addLine(cx - 40, cy + 70, cx + 40, cy + 70);
   }
 
@@ -476,6 +577,8 @@ function createAIStrokeSequence(wordRaw) {
     const rightX = cx + 150;
     let prevX = leftX;
     let prevY = cy - 80;
+
+    setColor("#0ea5e9");
     for (let i = 1; i <= 40; i++) {
       const t = i / 40;
       const x = leftX + (rightX - leftX) * t + Math.sin(t * Math.PI * 4) * 20;
@@ -487,8 +590,14 @@ function createAIStrokeSequence(wordRaw) {
   }
 
   function drawComputer() {
+    setColor("#111827");
     addRectOutline(cx - 120, cy - 80, 240, 140); // monitor
-    addRectOutline(cx - 80, cy + 60, 160, 30);   // base
+
+    setColor("#0ea5e9");
+    addRectOutline(cx - 110, cy - 70, 220, 120); // screen
+
+    setColor("#6b7280");
+    addRectOutline(cx - 80, cy + 60, 160, 30); // base
     addLine(cx - 30, cy + 60, cx - 10, cy + 40);
     addLine(cx + 30, cy + 60, cx + 10, cy + 40);
   }
@@ -498,21 +607,32 @@ function createAIStrokeSequence(wordRaw) {
     const x1 = cx - bodyLen / 2;
     const x2 = cx + bodyLen / 2;
     const y = cy;
-    addLine(x1, y, x2, y);              // body
+
+    setColor("#e5e7eb");
+    addLine(x1, y, x2, y); // body
+
+    setColor("#3b82f6");
     addLine(cx - 20, y, cx - 80, y - 40);
     addLine(cx - 20, y, cx - 80, y + 40);
     addLine(cx + 40, y, cx, y - 40);
     addLine(cx + 40, y, cx, y + 40);
+
+    setColor("#111827");
     addLine(x1, y, x1 - 30, y - 20);
     addLine(x1, y, x1 - 30, y + 20);
   }
 
   function drawCat() {
+    setColor("#facc15"); // yellowish cat
     addCircleOutline(cx, cy, 40, 24); // head
+
+    setColor("#f59e0b"); // ears
     addLine(cx - 25, cy - 25, cx - 10, cy - 55);
     addLine(cx - 10, cy - 55, cx, cy - 25);
     addLine(cx + 25, cy - 25, cx + 10, cy - 55);
     addLine(cx + 10, cy - 55, cx, cy - 25);
+
+    setColor("#111827"); // whiskers
     addLine(cx - 10, cy + 10, cx - 40, cy + 10);
     addLine(cx - 10, cy + 15, cx - 40, cy + 20);
     addLine(cx + 10, cy + 10, cx + 40, cy + 10);
@@ -520,9 +640,14 @@ function createAIStrokeSequence(wordRaw) {
   }
 
   function drawDog() {
+    setColor("#9ca3af"); // head
     addCircleOutline(cx, cy, 40, 24);
+
+    setColor("#6b7280"); // ears
     addRectOutline(cx - 45, cy - 15, 15, 35);
     addRectOutline(cx + 30, cy - 15, 15, 35);
+
+    setColor("#111827"); // mouth
     addLine(cx - 15, cy + 20, cx - 40, cy + 30);
     addLine(cx + 15, cy + 20, cx + 40, cy + 30);
   }
@@ -532,6 +657,8 @@ function createAIStrokeSequence(wordRaw) {
     const h = 40;
     const x = cx - w / 2;
     const y = cy;
+
+    setColor("#ef4444"); // red shoe
     addLine(x, y, x + w, y);
     addLine(x, y, x, y + h);
     addLine(x + w, y, x + w - 20, y - h);
@@ -539,8 +666,10 @@ function createAIStrokeSequence(wordRaw) {
   }
 
   function drawGeneric() {
-    // fallback: simple question mark
+    // fallback: colored question mark
+    setColor("#3b82f6");
     addCircleOutline(cx, cy - 30, 30, 20);
+    setColor("#111827");
     addLine(cx + 10, cy, cx, cy + 30);
     addLine(cx, cy + 30, cx, cy + 50);
     addCircleOutline(cx, cy + 70, 3, 8);
@@ -610,6 +739,7 @@ function createAIStrokeSequence(wordRaw) {
 
   return strokes;
 }
+
 
 
 function startAIDrawing(room) {
@@ -803,6 +933,35 @@ function computeAiGuessForRoom(room) {
   }
 
   return bestWord || candidates[Math.floor(Math.random() * candidates.length)];
+}
+function patternMatchScore(mask, word) {
+  if (!mask || !word || word.length !== mask.length) return 0;
+
+  // Build pattern of where letters repeat in the word
+  const patternMap = {};
+  const repeats = new Set();
+
+  for (let i = 0; i < word.length; i++) {
+    const c = word[i];
+    if (!patternMap[c]) patternMap[c] = [];
+    patternMap[c].push(i);
+  }
+
+  for (const k in patternMap) {
+    if (patternMap[k].length > 1) {
+      for (const idx of patternMap[k]) repeats.add(idx);
+    }
+  }
+
+  // Count how many repeated positions are already revealed in the mask
+  let score = 0;
+  repeats.forEach((idx) => {
+    if (mask[idx] !== "_" && mask[idx] !== " ") {
+      score += 0.5;
+    }
+  });
+
+  return score;
 }
 
 
@@ -1077,30 +1236,42 @@ io.on("connection", (socket) => {
   });
 
   // Host adds AI player
-  socket.on("addAIPlayer", ({ roomCode }) => {
-    const room = getRoom(roomCode);
-    if (!room) return;
-    if (room.hostId !== socket.id) return;
+socket.on("addAIPlayer", ({ roomCode }) => {
+  console.log("addAIPlayer requested by", socket.id, "for room", roomCode);
+  const room = getRoom(roomCode);
+  if (!room) {
+    console.log(" -> room not found");
+    return;
+  }
+  if (room.hostId !== socket.id) {
+    console.log(" -> rejected: not host (hostId is", room.hostId, ")");
+    return;
+  }
 
-    if (room.players.some((p) => p.isAI)) return;
+  if (room.players.some((p) => p.isAI)) {
+    console.log(" -> AI already present");
+    return;
+  }
 
-    const aiPlayer = {
-      id: `AI:${room.code}`,
-      name: "AI Bot",
-      score: 0,
-      isAI: true
-    };
+  const aiPlayer = {
+    id: `AI:${room.code}`,
+    name: "AI Bot",
+    score: 0,
+    isAI: true
+  };
 
-    room.players.push(aiPlayer);
-    broadcastPlayerList(room);
-    broadcastScores(room);
+  room.players.push(aiPlayer);
+  console.log(" -> AI Bot added. Total players:", room.players.length);
+  broadcastPlayerList(room);
+  broadcastScores(room);
 
-    io.to(room.code).emit("chatMessage", {
-      name: "System",
-      text: "AI Bot joined the room.",
-      type: "system"
-    });
+  io.to(room.code).emit("chatMessage", {
+    name: "System",
+    text: "AI Bot joined the room.",
+    type: "system"
   });
+});
+
 
   socket.on("startGame", ({ roomCode }) => {
     const room = getRoom(roomCode);
