@@ -48,7 +48,7 @@ let eraserActive = false;
 
 // Round state
 let currentRound = 1;
-let maxRounds = 3;
+let maxRounds = 4;
 let currentDrawerIndex = 0;
 let roundActive = false;
 
