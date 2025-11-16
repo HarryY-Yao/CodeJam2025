@@ -1,8 +1,13 @@
-Install Node.js
 
-Run npm init -y on CMD in folder with files
+# Clone the repository
+git clone <your-repo-url>
+cd CodeJam2025-main   # or your project folder name
 
-Run npm install express socket.io
+# Install dependencies
+npm install
 
-Run node server.js
+# Run the game
+node server.js
 
+# Open the port
+http://localhost:3000
