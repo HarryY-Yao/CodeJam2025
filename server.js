@@ -186,6 +186,8 @@ function chooseWordOptions() {
 
 // ---------- AI drawing helpers & templates ----------
 
+// ---------- AI drawing helpers & templates ----------
+
 function createAIStrokeSequence(wordRaw) {
   const word = (wordRaw || "").toLowerCase().trim();
   const strokes = [];
@@ -250,6 +252,19 @@ function createAIStrokeSequence(wordRaw) {
     }
   }
 
+  function addEllipseOutline(xc, yc, rx, ry, segments = 32) {
+    let prevX = xc + rx;
+    let prevY = yc;
+    for (let i = 1; i <= segments; i++) {
+      const a = (2 * Math.PI * i) / segments;
+      const x = xc + rx * Math.cos(a);
+      const y = yc + ry * Math.sin(a);
+      addLine(prevX, prevY, x, y, 1);
+      prevX = x;
+      prevY = y;
+    }
+  }
+
   function addArc(xc, yc, r, startAngle, endAngle, segments = 24) {
     let prevX = xc + r * Math.cos(startAngle);
     let prevY = yc + r * Math.sin(startAngle);
@@ -288,7 +303,7 @@ function createAIStrokeSequence(wordRaw) {
     penUp();
   }
 
-  // --- simple icons per word (with penUp / penDown) ---
+  // ---------- simple icons per word (good-looking versions) ----------
 
   function drawSun() {
     setColor("#facc15");
@@ -315,13 +330,10 @@ function createAIStrokeSequence(wordRaw) {
     setColor("#e5e7eb");
     penUp();
     penDown();
-    addCircleOutline(cx, cy, 40);
+    addCircleOutline(cx, cy, 80);
     penUp();
 
-    setColor("#111827");
-    penDown();
-    addCircleOutline(cx + 15, cy, 40);
-    penUp();
+    
   }
 
   function drawBall() {
@@ -510,6 +522,41 @@ function createAIStrokeSequence(wordRaw) {
     penUp();
   }
 
+  // Airplane – vertical body with wings & tail
+  function drawAirplane() {
+    setColor("#e5e7eb");
+    const bodyRx = 30;
+    const bodyRy = 90;
+
+    penUp();
+    penDown();
+    addEllipseOutline(cx, cy, bodyRx, bodyRy, 40);
+    penUp();
+
+    // Wings
+    setColor("#6b7280");
+    const wingY = cy;
+    penDown();
+    addLine(cx - 120, wingY, cx - 20, wingY - 10);
+    addLine(cx - 20, wingY - 10, cx - 20, wingY + 10);
+    addLine(cx - 20, wingY + 10, cx - 120, wingY);
+    penUp();
+
+    penDown();
+    addLine(cx + 120, wingY, cx + 20, wingY - 10);
+    addLine(cx + 20, wingY - 10, cx + 20, wingY + 10);
+    addLine(cx + 20, wingY + 10, cx + 120, wingY);
+    penUp();
+
+    // Tail
+    const tailY = cy + bodyRy;
+    penDown();
+    addLine(cx, tailY - 20, cx - 30, tailY + 30);
+    addLine(cx - 30, tailY + 30, cx + 30, tailY + 30);
+    addLine(cx + 30, tailY + 30, cx, tailY - 20);
+    penUp();
+  }
+
   function drawRocket() {
     const bodyW = 60;
     const bodyH = 160;
@@ -530,36 +577,106 @@ function createAIStrokeSequence(wordRaw) {
   }
 
   function drawFish() {
-    const len = 140;
-    const x1 = cx - len / 2;
-    const x2 = cx + len / 2;
-    const y = cy;
+  const len = 140;                 // overall body length
+  const bodyLeft  = cx - len / 2;
+  const bodyRight = cx + len / 2;
+  const bodyTop   = cy - 25;
+  const bodyBottom= cy + 25;
 
-    setColor("#0ea5e9");
-    penUp();
-    penDown();
-    addLine(x1, y, x2, y);
-    penUp();
+  setColor("#0ea5e9");
 
-    penDown();
-    addLine(x2, y, x2 + 30, y - 20);
-    addLine(x2, y, x2 + 30, y + 20);
-    penUp();
-  }
+  // === BODY OUTLINE (big diamond) ===
+  penUp();
+  penDown();
+  addLine(bodyLeft,  cy,      cx,        bodyTop);    // left -> top
+  addLine(cx,        bodyTop, bodyRight, cy);         // top -> right
+  addLine(bodyRight, cy,      cx,        bodyBottom); // right -> bottom
+  addLine(cx,        bodyBottom, bodyLeft, cy);       // bottom -> left
+  penUp();
 
+  // === TAIL (small diamond on the left) ===
+  const tailInnerX = bodyLeft - 15;
+  const tailTipX   = bodyLeft - 40;
+  const tailTop    = cy - 18;
+  const tailBottom = cy + 18;
+
+  penDown();
+  addLine(bodyLeft,  cy,        tailInnerX, tailTop);
+  addLine(tailInnerX, tailTop,  tailTipX,   cy);
+  addLine(tailTipX,   cy,        tailInnerX, tailBottom);
+  addLine(tailInnerX, tailBottom, bodyLeft,  cy);
+  penUp();
+
+  // === CENTER VERTICAL LINE ===
+  penDown();
+  addLine(cx, bodyTop, cx, bodyBottom);
+  penUp();
+
+  // === INNER HORIZONTAL LINE (spine) ===
+  const spineLeft  = cx - len * 0.3;
+  const spineRight = cx + len * 0.3;
+  penDown();
+  addLine(spineLeft, cy, spineRight, cy);
+  penUp();
+
+  // === EYE ===
+  const eyeX = cx + len * 0.25;
+  const eyeY = cy - 5;
+  penDown();
+  addArc(eyeX, eyeY, 3, 0, 2 * Math.PI, 8); // small circle
+  penUp();
+}
+
+
+  // Umbrella – dome with scallops + handle
   function drawUmbrella() {
-    const r = 80;
+    const r = 110;
+    const domeY = cy;
+
+    // ==== TOP DOME (flip so it's not upside down) ====
     setColor("#ec4899");
     penUp();
     penDown();
-    addCircleOutline(cx, cy, r, 24);
+    // Use 0 → PI so it arches up like ∩
+    addArc(cx, domeY, r, 0, Math.PI, 40);
     penUp();
 
+    // ==== SCALLOPED BOTTOM (no overlap, just touching) ====
+    const scallopR = 25;
+    // Distance between centers should be 2 * scallopR = 50
+    // so they touch instead of overlapping.
+    const offsets = [-75, -25, 25, 75]; // 4 bumps, 50px apart
+    const bottomY = domeY + 10;
+
+    for (const ox of offsets) {
+      penDown();
+      // Draw the bumps curving downward (∪)
+      addArc(cx + ox, bottomY, scallopR, Math.PI, 2 * Math.PI, 12);
+      penUp();
+    }
+
+    // ==== HANDLE ====
     setColor("#111827");
+    const shaftTop = domeY + 10;
+    const shaftBottom = shaftTop + 110;
     penDown();
-    addLine(cx, cy, cx, cy + 80);
+    addLine(cx, shaftTop, cx, shaftBottom - 15);
+    penUp();
+
+    // Hook at bottom
+    const hookR = 15;
+    penDown();
+    addArc(
+      cx - hookR,
+      shaftBottom - 15,
+      hookR,
+      Math.PI / 2,
+      Math.PI * 1.3,
+      12
+    );
     penUp();
   }
+
 
   function drawFlower() {
     setColor("#facc15");
@@ -580,49 +697,101 @@ function createAIStrokeSequence(wordRaw) {
     }
   }
 
+  // Banana – two parallel arcs
   function drawBanana() {
-    const rOuter = 100;
-    const rInner = 70;
-    const start = -Math.PI / 4;
-    const end = (5 * Math.PI) / 4;
+  const rOuter = 140;
+  const rInner = 110;
 
-    setColor("#facc15");
-    penUp();
-    penDown();
-    addArc(cx, cy, rOuter, start, end, 22);
-    penUp();
+  // Use a half-circle (bottom half, like a smile)
+  const start = Math.PI;          // 180°
+  const end = 2 * Math.PI;        // 360°
 
-    setColor("#fbbf24");
-    penDown();
-    addArc(cx, cy + 20, rInner, start, end, 22);
-    penUp();
-  }
+  // Pre-compute endpoints for both arcs
+  const outerStart = {
+    x: cx + rOuter * Math.cos(start),
+    y: cy + rOuter * Math.sin(start),
+  };
+  const outerEnd = {
+    x: cx + rOuter * Math.cos(end),
+    y: cy + rOuter * Math.sin(end),
+  };
 
+  const innerCy = cy + 18; // keep inner arc slightly shifted down
+  const innerStart = {
+    x: cx + rInner * Math.cos(start),
+    y: innerCy + rInner * Math.sin(start),
+  };
+  const innerEnd = {
+    x: cx + rInner * Math.cos(end),
+    y: innerCy + rInner * Math.sin(end),
+  };
+
+  // Outer half-circle
+  setColor("#facc15");
+  penUp();
+  penDown();
+  addArc(cx, cy, rOuter, start, end, 32);
+  penUp();
+
+  // Inner half-circle
+  setColor("#fbbf24");
+  penDown();
+  addArc(cx, innerCy, rInner, start, end, 32);
+  penUp();
+
+  // Connect the ends with straight lines
+  setColor("#facc15"); // or a darker outline if you prefer
+  penDown();
+  // Left side connection
+  addLine(outerStart.x, outerStart.y, innerStart.x, innerStart.y);
+  // Right side connection
+  addLine(outerEnd.x, outerEnd.y, innerEnd.x, innerEnd.y);
+  penUp();
+}
+
+
+  // Chair – side view (like the reference)
   function drawChair() {
+    const seatY = cy + 20;
+    const seatX1 = cx - 40;
+    const seatX2 = cx + 10;
+
     setColor("#6b7280");
     penUp();
     penDown();
-    addRectOutline(cx - 40, cy - 40, 80, 40);
-    penUp();
-
-    setColor("#9ca3af");
-    penDown();
-    addRectOutline(cx - 40, cy, 80, 30);
+    // Seat
+    addLine(seatX1, seatY, seatX2, seatY);
+    // Front leg
+    addLine(seatX1, seatY, seatX1, seatY + 80);
+    // Back leg
+    addLine(seatX2, seatY, seatX2, seatY + 90);
+    // Backrest
+    addLine(seatX2, seatY, seatX2, seatY - 80);
     penUp();
   }
 
+  // Table – long top with two legs
   function drawTable() {
-    setColor("#9ca3af");
-    penUp();
-    penDown();
-    addRectOutline(cx - 100, cy - 20, 200, 40);
-    penUp();
+    const topY = cy;
+    const leftX = cx - 150;
+    const rightX = cx + 150;
 
     setColor("#4b5563");
-    penDown();
-    addLine(cx - 80, cy + 20, cx - 80, cy + 80);
-    addLine(cx + 80, cy + 20, cx + 80, cy + 80);
     penUp();
+    penDown();
+    // Top
+    addLine(leftX, topY, rightX, topY);
+    penUp();
+
+    // Legs
+    const legHeight = 80;
+    const legOffsets = [-80, 80];
+    for (const offset of legOffsets) {
+      const x = cx + offset;
+      penDown();
+      addLine(x, topY, x, topY + legHeight);
+      penUp();
+    }
   }
 
   function drawCookie() {
@@ -656,13 +825,19 @@ function createAIStrokeSequence(wordRaw) {
   }
 
   function drawMountain() {
-    setColor("#6b7280");
-    penUp();
-    penDown();
-    addLine(cx - 120, cy + 70, cx, cy - 80);
-    addLine(cx, cy - 80, cx + 120, cy + 70);
-    penUp();
-  }
+  setColor("#6b7280");
+  penUp();
+  penDown();
+
+  // Left side
+  addLine(cx - 120, cy + 70, cx, cy - 80);
+  // Right side
+  addLine(cx, cy - 80, cx + 120, cy + 70);
+  // Bottom side
+  addLine(cx + 120, cy + 70, cx - 120, cy + 70);
+
+  penUp();
+}
 
   function drawRiver() {
     const leftX = cx - 150;
@@ -677,53 +852,151 @@ function createAIStrokeSequence(wordRaw) {
     penUp();
   }
 
+  // Cat – circle head, ears, whiskers
   function drawCat() {
-    setColor("#facc15");
+    setColor("#000000");
+    const r = 60;
+
+    // Head
     penUp();
     penDown();
-    addCircleOutline(cx, cy, 40, 24);
+    addCircleOutline(cx, cy, r, 40);
     penUp();
 
-    setColor("#f59e0b");
+    // Ears (triangles)
+    const earY = cy - r;
+    const earHeight = 40;
+    const earOffset = 35;
+
     penDown();
-    addLine(cx - 25, cy - 25, cx - 10, cy - 55);
-    addLine(cx - 10, cy - 55, cx, cy - 25);
+    addLine(cx - earOffset, earY, cx - earOffset / 2, earY - earHeight);
+    addLine(cx - earOffset / 2, earY - earHeight, cx - earOffset / 4, earY);
+    addLine(cx - earOffset / 4, earY, cx - earOffset, earY);
+    penUp();
+
+    penDown();
+    addLine(cx + earOffset, earY, cx + earOffset / 2, earY - earHeight);
+    addLine(cx + earOffset / 2, earY - earHeight, cx + earOffset / 4, earY);
+    addLine(cx + earOffset / 4, earY, cx + earOffset, earY);
+    penUp();
+
+    // Eyes
+    const eyeOffsetX = 18;
+    const eyeY = cy - 5;
+    penDown();
+    addCircleOutline(cx - eyeOffsetX, eyeY, 3, 8);
     penUp();
     penDown();
-    addLine(cx + 25, cy - 25, cx + 10, cy - 55);
-    addLine(cx + 10, cy - 55, cx, cy - 25);
+    addCircleOutline(cx + eyeOffsetX, eyeY, 3, 8);
     penUp();
+
+    // Whiskers
+    const whiskerYOffsets = [-30, 0, 30];
+    const whiskerLen = 45;
+    for (const dy of whiskerYOffsets) {
+      const y = cy + dy;
+      penDown();
+      addLine(cx - 8, y, cx - whiskerLen, y);
+      penUp();
+      penDown();
+      addLine(cx + 8, y, cx + whiskerLen, y);
+      penUp();
+    }
   }
 
+  // Dog – rectangle body + head + legs & tail (blocky dog)
   function drawDog() {
-    setColor("#9ca3af");
+    setColor("#000000");
+
+    const bodyW = 180;
+    const bodyH = 80;
+    const bodyX = cx - bodyW / 2;
+    const bodyY = cy;
+
+    // Body
     penUp();
     penDown();
-    addCircleOutline(cx, cy, 40, 24);
+    addRectOutline(bodyX, bodyY, bodyW, bodyH);
     penUp();
 
-    setColor("#6b7280");
+    // Head (square) on left
+    const headSize = 70;
+    const headX = bodyX;
+    const headY = bodyY - headSize;
     penDown();
-    addRectOutline(cx - 45, cy - 15, 15, 35);
+    addRectOutline(headX, headY, headSize, headSize);
     penUp();
+
+    // Ears (triangles)
+    const earTopY = headY;
+    const earLeftX = headX + 10;
+    const earRightX = headX + headSize - 10;
+
     penDown();
-    addRectOutline(cx + 30, cy - 15, 15, 35);
+    addLine(earLeftX, earTopY, earLeftX + 10, earTopY - 25);
+    addLine(earLeftX + 10, earTopY - 25, earLeftX + 20, earTopY);
+    addLine(earLeftX + 20, earTopY, earLeftX, earTopY);
+    penUp();
+
+    penDown();
+    addLine(earRightX, earTopY, earRightX - 10, earTopY - 25);
+    addLine(earRightX - 10, earTopY - 25, earRightX - 20, earTopY);
+    addLine(earRightX - 20, earTopY, earRightX, earTopY);
+    penUp();
+
+    // Legs
+    const legWidth = 20;
+    const legHeight = 40;
+    const legOffsets = [-60, -20, 20, 60];
+    for (const offset of legOffsets) {
+      const lx = cx + offset - legWidth / 2;
+      const ly = bodyY + bodyH;
+      penDown();
+      addRectOutline(lx, ly, legWidth, legHeight);
+      penUp();
+    }
+
+    // Tail (triangle)
+    const tailBaseX = bodyX + bodyW;
+    const tailBaseY = bodyY + 20;
+    penDown();
+    addLine(tailBaseX, tailBaseY, tailBaseX + 40, tailBaseY - 15);
+    addLine(tailBaseX + 40, tailBaseY - 15, tailBaseX, tailBaseY + 10);
+    addLine(tailBaseX, tailBaseY + 10, tailBaseX, tailBaseY);
     penUp();
   }
 
+  // Shoe – long base + angled top (matches ramp-ish picture)
   function drawShoe() {
-    const w = 180;
-    const h = 40;
-    const x = cx - w / 2;
-    const y = cy;
+    setColor("#000000");
 
-    setColor("#ef4444");
+    const baseY = cy + 40;
+    const baseX1 = cx - 130;
+    const baseX2 = cx + 80;
+
+    // Base rectangle
     penUp();
     penDown();
-    addLine(x, y, x + w, y);
-    addLine(x, y, x, y + h);
-    addLine(x + w, y, x + w - 20, y - h);
-    addLine(x + w - 20, y - h, x + 20, y - h);
+    addRectOutline(baseX1, baseY - 25, baseX2 - baseX1, 25);
+    penUp();
+
+    // Heel (right vertical)
+    const heelX = baseX2;
+    const heelTopY = baseY - 80;
+    penDown();
+    addLine(heelX, baseY - 25, heelX, heelTopY);
+    penUp();
+
+    // Top diagonal up to a rim ellipse
+    const rimCx = heelX;
+    const rimCy = heelTopY;
+    penDown();
+    addLine(baseX1 + 20, baseY - 25, rimCx, rimCy);
+    penUp();
+
+    // Top ellipse (opening)
+    penDown();
+    addEllipseOutline(rimCx, rimCy, 45, 12, 28);
     penUp();
   }
 
@@ -742,6 +1015,52 @@ function createAIStrokeSequence(wordRaw) {
     addRectOutline(cx + 30, cy - 10, 60, 20);
     penUp();
   }
+
+  // Computer – monitor with inner frame + triangular stand
+  function drawComputer() {
+    setColor("#000000");
+
+    const screenW = 260;
+    const screenH = 140;
+    const x = cx - screenW / 2;
+    const y = cy - screenH / 2;
+
+    // Outer frame
+    penUp();
+    penDown();
+    addRectOutline(x, y, screenW, screenH);
+    penUp();
+
+    // Inner frame
+    const innerPadding = 15;
+    penDown();
+    addRectOutline(
+      x + innerPadding,
+      y + innerPadding,
+      screenW - 2 * innerPadding,
+      screenH - 2 * innerPadding
+    );
+    penUp();
+
+    // Stand
+    const standTopX = cx;
+    const standTopY = y + screenH;
+    const standBottomY = standTopY + 60;
+    const standHalf = 35;
+
+    penDown();
+    addLine(standTopX, standTopY, standTopX - standHalf, standBottomY);
+    addLine(standTopX, standTopY, standTopX + standHalf, standBottomY);
+    addLine(
+      standTopX - standHalf,
+      standBottomY,
+      standTopX + standHalf,
+      standBottomY
+    );
+    penUp();
+  }
+
+  // ---------- dispatch by word ----------
 
   if (word.includes("sun")) {
     drawSun();
@@ -765,6 +1084,8 @@ function createAIStrokeSequence(wordRaw) {
     drawPhone();
   } else if (word.includes("camera")) {
     drawCamera();
+  } else if (word.includes("airplane")) {
+    drawAirplane();
   } else if (word.includes("rocket")) {
     drawRocket();
   } else if (word.includes("fish")) {
@@ -787,6 +1108,8 @@ function createAIStrokeSequence(wordRaw) {
     drawMountain();
   } else if (word.includes("river")) {
     drawRiver();
+  } else if (word.includes("computer")) {
+    drawComputer();
   } else if (word.includes("cat")) {
     drawCat();
   } else if (word.includes("dog")) {
@@ -820,9 +1143,8 @@ function startAIDrawing(room) {
 
 // Debug helper: draw ALL AI templates one after another in a room
 function debugDrawAllWords(room) {
-  
   if (!room) return;
-  const allWords = WORDS.slice();  // clone
+  const allWords = WORDS.slice();
 
   let index = 0;
 
@@ -843,7 +1165,6 @@ function debugDrawAllWords(room) {
       type: "system"
     });
 
-    // Clear canvas for everyone before drawing next word
     io.to(room.code).emit("clearCanvasAll");
 
     const strokes = createAIStrokeSequence(w);
@@ -852,18 +1173,18 @@ function debugDrawAllWords(room) {
     const interval = setInterval(() => {
       if (i >= strokes.length) {
         clearInterval(interval);
-        // Small pause then next word
         setTimeout(drawNext, 1200);
         return;
       }
-
       const evt = strokes[i++];
       io.to(room.code).emit("remoteDrawEvent", evt);
-    }, 30); // adjust speed if needed
+    }, 30);
   }
 
   drawNext();
 }
+
+
 
 
 // ---------- AI guessing helpers ----------
