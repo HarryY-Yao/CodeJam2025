@@ -106,9 +106,22 @@
             <div class="ai-options">
               <label for="ai-difficulty">AI Difficulty</label>
               <select id="ai-difficulty">
-                <option value="easy">Easy</option>
-                <option value="medium" selected>Medium</option>
+                <!-- Easy is now the default (selected) -->
+                <option value="easy" selected>Easy</option>
+                <option value="medium">Medium</option>
                 <option value="hard">Hard</option>
+              </select>
+            </div>
+
+            <!-- Number of rounds selector -->
+            <div class="round-options">
+              <label for="round-count">Number of rounds</label>
+              <select id="round-count">
+                <option value="1">1</option>
+                <option value="3" selected>3</option>
+                <option value="5">5</option>
+                <option value="7">7</option>
+                <option value="10">10</option>
               </select>
             </div>
 
@@ -116,6 +129,7 @@
             <button id="add-ai-btn" class="secondary">Add AI Player</button>
             <button id="lobby-back-btn" class="secondary">Leave Room</button>
           </div>
+
 
         </div>
         </div>

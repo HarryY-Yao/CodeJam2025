@@ -15,7 +15,7 @@ let hostGameBtn, joinGameBtn, joinErrorEl;
 let lobbyRoomCodeEl, lobbyPlayerListEl, lobbyRoleLabelEl;
 let lobbyStartBtn, lobbyBackBtn, addAIBtn;
 let aiDifficultySelect;
-
+let roundCountSelect;
 
 
 // Game UI
@@ -91,6 +91,7 @@ document.addEventListener("DOMContentLoaded", () => {
   lobbyBackBtn      = document.getElementById("lobby-back-btn");
   addAIBtn          = document.getElementById("add-ai-btn");
   aiDifficultySelect = document.getElementById("ai-difficulty");
+  roundCountSelect  = document.getElementById("round-count");
   
 
   // Game UI
@@ -131,10 +132,19 @@ document.addEventListener("DOMContentLoaded", () => {
   hostGameBtn.addEventListener("click", onHostGame);
   joinGameBtn.addEventListener("click", onJoinGame);
   lobbyBackBtn.addEventListener("click", () => window.location.reload());
-  lobbyStartBtn.addEventListener("click", () => {
+    lobbyStartBtn.addEventListener("click", () => {
     if (!isHost || !currentRoomCode) return;
-    socket.emit("startGame", { roomCode: currentRoomCode });
+
+    let maxRounds = parseInt(roundCountSelect?.value, 10);
+    if (isNaN(maxRounds) || maxRounds < 1) maxRounds = 1;
+    if (maxRounds > 20) maxRounds = 20;   // safety cap, tweak if you want
+
+    socket.emit("startGame", {
+      roomCode: currentRoomCode,
+      maxRounds
+    });
   });
+
 
   if (addAIBtn) {
     addAIBtn.addEventListener("click", () => {
